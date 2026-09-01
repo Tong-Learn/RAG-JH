@@ -1,0 +1,44 @@
+# ---- 密钥 / 配置（勿提交）----
+.env
+.env.local
+.env.*.local
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+
+# ---- 项目产物（运行后生成，不入库）----
+# 向量化落库
+data/chroma/
+
+# 数据准备 / 切片 产物
+data/processed/
+data/chunks/
+
+# 可选生成的样例文档
+data/samples/
+
+# ---- 源语料（大体积 / 版权，不纳入版本控制）----
+# 说明：test/ 下为真实游戏公告 PDF（约 68.6MB，27 份），仅本地运行用。
+# 仓库不做存储；如需复现，请自行放置 PDF 或改用 scripts/generate_samples.py。
+test/
+
+# ---- 虚拟环境 ----
+.venv/
+.venv_rag/
+.venv_rag311/
+.venv_rag12/
+.venv_tmp/
+venv/
+
+# ---- 编辑器 / 系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
