@@ -60,6 +60,8 @@ def chunk_to_record(c):
         "section_path": " / ".join(c.get("section_path") or []),  # list -> string
         "start_block": int(c.get("start_block", 0)),
         "end_block": int(c.get("end_block", 0)),
+        "start_page": int(c.get("start_page", 0)),
+        "end_page": int(c.get("end_page", 0)),
     }
     return c["id"], c["text"], meta
 

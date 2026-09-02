@@ -22,6 +22,7 @@ class Block:
     text: str = ""                 # heading / para 的正文
     level: int = 1                 # heading 级别
     rows: list = field(default_factory=list)  # table 的行(每行是字符串列表)
+    page: int = 0                  # 页码(1-based)，非 PDF 或无页码为 0
 
 
 # ---------- txt ----------
@@ -244,7 +245,8 @@ def extract_pdf(path: Path):
     doc = fitz.open(str(path))
     blocks = []
     seen_headings = set()
-    for page in doc:
+    for pno, page in enumerate(doc):
+        pg = pno + 1                # 页码 1-based，供溯源(chunk 元数据)与引用展示
         raw = page.get_text("dict")
         # 1) 全页行级信息(先全量收集，用于统计正文字号)
         all_lines = []
@@ -270,7 +272,7 @@ def extract_pdf(path: Path):
                 if _is_fake_table(rows):
                     fake_rects.append(t.bbox)
                 else:
-                    blocks.append(Block("table", rows=rows))
+                    blocks.append(Block("table", rows=rows, page=pg))
                     table_rects.append(t.bbox)
         except Exception:
             pass  # 某页表格检测失败不影响整份文档
@@ -286,7 +288,7 @@ def extract_pdf(path: Path):
             nonlocal body_buf
             if body_buf:
                 for para in _merge_para_lines(body_buf, line_h):
-                    blocks.append(Block("para", text=para))
+                    blocks.append(Block("para", text=para, page=pg))
                 body_buf = []
 
         for b in raw["blocks"]:
@@ -324,7 +326,7 @@ def extract_pdf(path: Path):
                         key = (info["text"], level)
                         if key not in seen_headings:   # 文档级去重：防每页重复标题栏
                             seen_headings.add(key)
-                            hb = Block("heading", text=info["text"], level=level)
+                            hb = Block("heading", text=info["text"], level=level, page=pg)
                             blocks.append(hb)
                             last_heading, last_heading_size = hb, info["size"]
                             last_heading_y1 = y1

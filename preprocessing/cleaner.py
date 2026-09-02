@@ -50,15 +50,15 @@ def clean_block(block: Block):
         if not text or _is_noise(text):
             return None
         if block.kind == "heading":
-            return Block("heading", text=text, level=block.level)
-        return Block("para", text=text)
+            return Block("heading", text=text, level=block.level, page=block.page)
+        return Block("para", text=text, page=block.page)
     if block.kind == "table":
         rows = [[_normalize_ws(c) for c in row] for row in block.rows]
         # 移除整行都为空的行；若整个表格空了则丢弃
         rows = [r for r in rows if any(c for c in r)]
         if not rows:
             return None
-        return Block("table", rows=rows)
+        return Block("table", rows=rows, page=block.page)
     return None
 
 

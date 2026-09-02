@@ -32,6 +32,8 @@ class Chunk:
     rows: list = field(default_factory=list)   # table 保留原始行列；para 为空
     start_block: int = 0          # 覆盖的源块起始下标
     end_block: int = 0            # 覆盖的源块结束下标
+    start_page: int = 0           # 覆盖的源块起始页码(1-based；无页码为 0)
+    end_page: int = 0             # 覆盖的源块结束页码
 
 
 # ---------- 段落打包 ----------
@@ -170,10 +172,14 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
         nonlocal chunk_counter
         chunk_counter += 1
         lo, hi = min(block_idxs), max(block_idxs)
+        pages = [blocks[i].get("page", 0) for i in block_idxs]
+        sp = min(pages) if pages else 0
+        ep = max(pages) if pages else 0
         return Chunk(
             id=f"chunk_{id_start + chunk_counter:06d}", doc=doc,
             section_path=sec["title_stack"],
             text=text, rows=rows or [], start_block=lo, end_block=hi,
+            start_page=sp, end_page=ep,
         )
 
     def merge_tail(sec_chunks):
@@ -187,6 +193,8 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
                 prev = sec_chunks[-2]
                 prev.text = prev.text.rstrip() + "\n" + tail.text.strip()
                 prev.end_block = max(prev.end_block, tail.end_block)
+                prev.start_page = min(prev.start_page, tail.start_page)
+                prev.end_page = max(prev.end_page, tail.end_page)
                 sec_chunks.pop()
 
     for sec in sections:

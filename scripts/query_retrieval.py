@@ -44,7 +44,8 @@ def show(rows, query_text):
         simp = f"{score:.4f}" if score is not None else "?"
         print(f"[{i}] id={cid}  相似度={simp}")
         print(f"    doc={meta.get('doc')}  section={meta.get('section_path')}  "
-              f"blocks=[{meta.get('start_block')},{meta.get('end_block')}]")
+              f"blocks=[{meta.get('start_block')},{meta.get('end_block')}]  "
+              f"page=[{meta.get('start_page', 0)}~{meta.get('end_page', 0)}]")
         snippet = (doc or "")[:80].replace("\n", " ")
         print(f"    text: {snippet}...")
 

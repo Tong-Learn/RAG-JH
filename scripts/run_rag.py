@@ -27,11 +27,16 @@ CHROMA_DIR = PROJECT_ROOT / "data" / "chroma"
 COLLECTION = "rag_chunks"
 
 # 默认生成模型（可 --model 覆盖）
-DEFAULT_CHAT_MODEL = "qwen-plus"
+DEFAULT_CHAT_MODEL = "qwen3.8-max"
 CHAT_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 # 内置默认问题（-k 之外可缺省）
 DEFAULT_QUESTION = "8月12日维护后开启了哪些新活动？"
+
+# 相似度阈值（item① 拒答）：top-1 相似度低于此值 => 拒答「资料中没有相关信息」，不调生成。
+# 缺省 None 时不启用(兼容)；校准值 0.70：正类(可答)min=0.673/中位=0.804，负类(无答/无关)max=0.719/中位=0.591，
+# 两分布在 0.673~0.719 有重叠，故取 0.70 平衡（拒掉 7/8 负样本，牺牲 1 道 0.673 边界正样本）。
+MIN_SCORE_DEFAULT = 0.70
 
 
 def chat(messages, model=DEFAULT_CHAT_MODEL, max_tokens=1024, temperature=0.3, timeout=90):
@@ -62,14 +67,19 @@ def retrieve(embedder, col, query, k):
 
 
 def build_context(hits):
-    """把 top-k chunk 拼成编号上下文，附一段来源附录。"""
+    """把 top-k chunk 拼成编号上下文，附一段来源附录（含页码，可用于回溯原文）。"""
     lines = ["以下是检索到的相关资料，请仅依据这些资料作答："]
     for i, h in enumerate(hits, 1):
-        lines.append(f"[{i}] (片段 {h['id']}, 来源文档:{h['meta'].get('doc')})")
+        meta = h["meta"]
+        pg = f" p.{meta.get('start_page')}~{meta.get('end_page')}" if meta.get("start_page") else ""
+        lines.append(f"[{i}] (片段 {h['id']}, 来源:{meta.get('doc')}"
+                     f" §{meta.get('section_path') or '全文'}{pg})")
         lines.append(h["text"])
         lines.append("")
     appendix = "引用来源: " + "; ".join(
         f"[{i}] {h['meta'].get('doc')} §{h['meta'].get('section_path') or '全文'}"
+        + (f" (p.{h['meta'].get('start_page')}~{h['meta'].get('end_page')})"
+           if h['meta'].get('start_page') else "")
         for i, h in enumerate(hits, 1))
     return "\n".join(lines), appendix
 
@@ -79,6 +89,8 @@ def main():
     ap.add_argument("question", nargs="*", help="要回答的问题；缺省用内置示例")
     ap.add_argument("-k", type=int, default=4, help="检索 top-k（默认 4）")
     ap.add_argument("--model", default=DEFAULT_CHAT_MODEL, help=f"生成模型（默认 {DEFAULT_CHAT_MODEL}）")
+    ap.add_argument("--min-score", type=float, default=MIN_SCORE_DEFAULT,
+                    help=f"相似度阈值（默认 {MIN_SCORE_DEFAULT}，不填则不启用拒答）")
     args = ap.parse_args()
     question = " ".join(args.question) or DEFAULT_QUESTION
 
@@ -91,6 +103,15 @@ def main():
     for h in hits:
         print(f"  - [{h['id']}] 相似度={h['score']:.3f}  {h['text'][:46]}...")
     print("-" * 78)
+
+    # item① 阈值拒答：top-1 相似度低于阈值 => 拒答，不调生成 API
+    top = hits[0]["score"] if hits else None
+    if args.min_score is not None and (top is None or top < args.min_score):
+        print(f"【拒答】资料中没有相关信息（top-1 相似度="
+              f"{'无命中' if top is None else f'{top:.3f}'} < 阈值 {args.min_score}），未调用生成。")
+        if hits:
+            print(f"  最接近片段: {hits[0]['text'][:90]}...")
+        return
 
     context, appendix = build_context(hits)
     prompt = (

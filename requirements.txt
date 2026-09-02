@@ -1,0 +1,23 @@
+# ===== 本项目直接依赖（版本锁定原因见 docs/故障报告.md）=====
+# 语言 / 运行环境：Python 3.11（推荐 venv 管理，本项目用 .venv_rag311）
+
+# --- 向量化 / 检索 ---
+chromadb==0.6.3         # Windows 下 hnsw batch_size 边界触发 0xC0000005，锁此版（见故障报告）
+chroma-hnswlib==0.7.6
+numpy==1.26.4           # <2，兼容 chromadb 0.6.3
+
+# --- 文档解析 ---
+PyMuPDF==1.28.2         # PDF：文本层 + find_tables()（含 pymupdf-layout 子模块）
+python-docx==1.2.0
+python-pptx==1.0.2
+openpyxl==3.1.5
+
+# --- 网络（DashScope OpenAI 兼容接口）---
+requests==2.34.2
+
+# --- 混合检索（item⑤，检索侧优化）---
+rank_bm25==0.2.2
+jieba==0.42.1           # 中文分词（BM25 用）
+
+# --- 测试（item④ 工程收尾）---
+pytest==9.1.1

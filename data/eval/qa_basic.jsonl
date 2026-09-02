@@ -1,0 +1,18 @@
+{"id": "b01", "set": "basic", "category": "answerable", "type": "normal", "query": "「逐猎狂途」是几人制的娱乐竞技玩法？", "expected_doc": "4月1日更新公告丨3v3 娱乐竞技玩法「逐猎狂途」强势回归", "expected_section": "逐猎狂途", "note": "4/1 逐猎狂途 3v3", "hard": false}
+{"id": "b02", "set": "basic", "category": "answerable", "type": "normal", "query": "「逐猎狂途」玩法中，每位冒险者最多携带多少个战利品？", "expected_doc": "4月1日更新公告丨3v3 娱乐竞技玩法「逐猎狂途」强势回归", "expected_section": "逐猎狂途", "note": "4/1 战利品上限 5", "hard": false}
+{"id": "b03", "set": "basic", "category": "answerable", "type": "normal", "query": "全新玩法「征战之塔」共有几档难度？", "expected_doc": "5月13日更新公告丨全新玩法征战之塔来袭 80级史诗Ⅱ装备上线", "expected_section": "全新玩法「征战之塔」", "note": "5/13 征战之塔 5档难度", "hard": false}
+{"id": "b04", "set": "basic", "category": "answerable", "type": "normal", "query": "全新80级史诗Ⅱ首饰套装一共有几套？", "expected_doc": "5月13日更新公告丨全新玩法征战之塔来袭 80级史诗Ⅱ装备上线", "expected_section": "80级史诗Ⅱ全新装备", "note": "5/13 80级史诗Ⅱ 5套", "hard": false}
+{"id": "b05", "set": "basic", "category": "answerable", "type": "normal", "query": "「铸骨迷巢」团本的奖励刷新时间是什么时候？", "expected_doc": "6月17日更新公告丨全新团本「铸骨迷巢」开启 新时装「永寂渊主」上线！", "expected_section": "铸骨迷巢", "note": "6/17 奖励刷新", "hard": false}
+{"id": "b06", "set": "basic", "category": "answerable", "type": "normal", "query": "《晶核》三周年庆典「锻造补给站」中，登录游戏可领取多少强化基金？", "expected_doc": "7月8日更新公告丨新职业「艾尔莎」上线 三周年庆典活动开启", "expected_section": "「锻造补给站」", "note": "7/8 强化基金", "hard": false}
+{"id": "b07", "set": "basic", "category": "answerable", "type": "normal", "query": "常规服新宠物「汐音之灵」可通过什么圣物箱获得？", "expected_doc": "7月29日更新公告丨常规服新宠物登场 赛季服团战挑战规则调整", "expected_section": "常规服新宠物", "note": "7/29 汐音之灵", "hard": false}
+{"id": "b08", "set": "basic", "category": "answerable", "type": "normal", "query": "《晶核》赛季服的等级上限是多少级？", "expected_doc": "《晶核》赛季服开启公告", "expected_section": "", "note": "赛季服 等级上限", "hard": false}
+{"id": "b09", "set": "basic", "category": "answerable", "type": "normal", "query": "阿特兰服装染色大赛第八期结束后将举办第几期？", "expected_doc": "阿特兰服装染色大赛第八期公布", "expected_section": "", "note": "染色大赛 第八期", "hard": false}
+{"id": "b10", "set": "basic", "category": "answerable", "type": "normal", "query": "「辉月织梦」礼包售价多少欧珀/晶珀？", "expected_doc": "4月22日更新公告丨全新时装「逝灭魔权」&「辉月织梦」上线 回路系统规则调整", "expected_section": "辉月织梦", "note": "4/22 辉月织梦价", "hard": false}
+{"id": "b11", "set": "basic", "category": "unanswerable", "type": "no_answer", "query": "《晶核》手游的全渠道公测是在哪一年？", "expected_doc": "", "expected_section": "", "note": "语料无公测年份", "hard": true}
+{"id": "b12", "set": "basic", "category": "unanswerable", "type": "no_answer", "query": "晶核手游的研发工作室叫什么名字？", "expected_doc": "", "expected_section": "", "note": "语料无开发商", "hard": true}
+{"id": "b13", "set": "basic", "category": "unanswerable", "type": "no_answer", "query": "「远古战场」游戏玩法最早是在哪一年上线的？", "expected_doc": "", "expected_section": "", "note": "语料仅覆盖2026公告，无最早上线年份", "hard": true}
+{"id": "b14", "set": "basic", "category": "unanswerable", "type": "no_answer", "query": "游戏里金色品质装备最高可强化到多少级？", "expected_doc": "", "expected_section": "", "note": "语料无该说明", "hard": true}
+{"id": "b15", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "如何制作红烧排骨？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
+{"id": "b16", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "《原神》4.0版本枫丹有哪些新角色？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
+{"id": "b17", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "银行卡挂失后多久能补办？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
+{"id": "b18", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "超导量子比特需要维持多少开尔文的低温？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}

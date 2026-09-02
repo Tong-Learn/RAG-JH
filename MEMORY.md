@@ -25,12 +25,15 @@
 ## 当前进展（2026-08，真实语料 27 份游戏公告）
 
 - **全链路跑通**：数据准备 → 切片 → 向量化 → 检索 → 生成，均在 `.venv_rag311`（Python 3.11）。
-- **规模**：`test` 27 份公告 → **335 chunk** → chroma **335 行**（集合 `rag_chunks`，cosine）。
-- **检索评估**（`data/eval/queries.json`，41 题，默认 top-3）：
-  - recall@3=**1.000** · MRR=**0.988** · P@1=**0.976** · precision@3=**0.715** · nDCG@3=**0.991**
-  - 41 题全命中；40 题 rank-1 + 1 题 rank-2（最难的「征战之塔第二期」跨文档辨析题）。
-  - **诚实解读**：语料术语区分度高、且是**小语料**，高基线是「合理」而非「系统很强」；要测上限需造更硬问题（见待办 P1-2）。
-- **RAG 生成**：`run_rag.py` 正确给出带引用回答；`section_path` 含完整标题（如 `《晶核》… > 解除转职限制`）。
+- **规模（2026-08 扩充后）**：`test` **54 份公告** → **578 chunk** → chroma **578 行**（集合 `rag_chunks`，cosine）。
+- **新增能力**：溯源到页（`Block/Chunk` 带 `page`，chroma metadata `start_page/end_page`）；相似度阈值拒答（`run_rag --min-score`，校准值 0.70）；两套评测集 `qa_basic.jsonl` + `qa_complex.jsonl`；`retrieval/` 混合检索（BM25+向量 RRF）+ DashScope rerank。
+- **检索评估（新双集，top-3；详见 docs/评测复盘.md；c11 地面真值已修正后为最终值）**：
+  - 复杂集(13题，含跨文档/语义近似/精确词)：**纯向量** recall@3=1.0 / MRR=0.923 / P@1=0.846 / prec@3=0.538 / nDCG=0.943；**混合(BM25+向量RRF)**→0.910/0.846/0.513/0.933；**混合+重排**→1.0/**1.000**/**1.000**/**0.641**/**1.000**。
+  - **诚实结论**：BM25+RRF 单独几乎中性（甚至 MRR 略降），**真正质变来自 DashScope 重排**（P@1/MRR/nDCG 拉满）。不夸大混合检索，突出 rerank 是杠杆。
+  - 基础集(18题，含 8 道无答/无关负样本)：recall@3=0.556（负样本无 expected_doc 拉低分母）；阈值校准：正类 top-1 min=0.673/中位0.804，负类 max=0.719/中位0.591（0.673~0.719 有重叠区，精确价位题 c08 top1=0.589 被拒为边界情况）。
+- **RAG 生成**：`run_rag.py` 用 `qwen3.8-max`，回答带 `[1][2]` 引用 + 页码；符合 min-score 才生成，否则**拒答**「资料中没有相关信息」。
+- **工程收尾**：`requirements.txt`（锁版本+说明）、`tests/test_chunker.py` + `tests/test_cleaner.py`（pytest 12 通过）。
+- **已开源**：仓库 <https://github.com/Tong-Learn/RAG-JH>（public，`main`；`test/`、`data/` 产物、`.env`、`.venv_rag311` 未纳入）。
 
 ---
 
@@ -38,10 +41,10 @@
 
 | 优先级 | 事项 |
 |---|---|
-| **P0 可信度** | P0-2 数据准备·去重；P0-3 溯源坐标生产化（`start/end_block` → `source_uri+page+chunk_index` 或 `start_char/end_char`） |
-| **P1 指标** | P1-1 扩真实语料；P1-2 造更硬问题（跨文档辨析/语义近似但答案不同/语料无答案）；P1-3 指标细到 chunk/句级 |
-| **P2 效果** | P2-1 rerank；P2-2 混合检索（BM25+向量）；P2-3 切片参数调优；P2-4 生成侧评估（RAGAS 式） |
-| **P3 收尾** | P3-1 端到端演示脚本；P3-2 简历技术点凝练；P3-3 清理临时目录/复核 `.gitignore` |
+| **P0 可信度** | P0-2 数据准备·去重；P0-3 溯源坐标生产化 ~~（改为逐层 page，`start/end_page` 实现「附原文链接」，✅ 2026-08）~~ |
+| **P1 指标** | P1-1 ~~扩真实语料（27→54 份，578 chunk）~~ ✅；P1-2 ~~造更硬问题（qa_basic/qa_complex 两套）~~ ✅；P1-3 指标细到 chunk/句级（部分：doc 级 + precision@k） |
+| **P2 效果** | P2-1 ~~rerank（DashScope qwen3.7-text-rerank）~~ ✅；P2-2 ~~混合检索（BM25+向量 RRF）~~ ✅；P2-3 切片参数调优；P2-4 生成侧评估（已做检索侧对比 + 生成回答复盘，RAGAS 式指标未做） |
+| **P3 收尾** | P3-1 端到端演示脚本（gen_answers 为批量生成，交互式 demo 未做）；P3-2 简历技术点凝练；P3-3 ~~清理临时目录/复核 `.gitignore`~~ ✅ 已上传 GitHub |
 
 ---
 
@@ -50,6 +53,7 @@
 | 文档 | 内容 |
 |---|---|
 | `examples/README.md` | 真实公告**解析产物样例**（提取 Blocks / 切片 chunks）+ 局限说明 |
+| `docs/评测复盘.md` | 基础/复杂/优化后问答 + 检索指标对比（含阈值拒答、诚实边界） |
 | `docs/技术栈.md` | 技术栈与刻意排除项 |
 | `docs/面试要点.md` | RAG 标准化流程讲解 + 各步「我的思考/解决思路/延伸思考」+ 面试级回答口径 |
 | `docs/数据准备方案.md` | 数据准备（提取/清洗/Block 中间表示）方案 |

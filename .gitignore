@@ -10,6 +10,9 @@ __pycache__/
 .eggs/
 build/
 dist/
+.pytest_cache/
+.coverage
+htmlcov/
 
 
 # ---- 项目产物（运行后生成，不入库）----
@@ -20,11 +23,14 @@ data/chroma/
 data/processed/
 data/chunks/
 
+# 生成的问答记录（复盘文档已内联，原始 jsonl 可再生成）
+data/eval/answers_*.jsonl
+
 # 可选生成的样例文档
 data/samples/
 
 # ---- 源语料（大体积 / 版权，不纳入版本控制）----
-# 说明：test/ 下为真实游戏公告 PDF（约 68.6MB，27 份），仅本地运行用。
+# 说明：test/ 下为真实游戏公告 PDF（54 份，约 68.6MB），仅本地运行用。
 # 仓库不做存储；如需复现，请自行放置 PDF 或改用 scripts/generate_samples.py。
 test/
 

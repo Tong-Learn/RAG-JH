@@ -103,11 +103,14 @@ RAG/
 ├─ preprocessing/        # ① 数据准备：extractors / cleaner / pipeline
 ├─ chunking/             # ③ 切片：chunker.py
 ├─ embedding/            # ④ 向量化：dashscope_embedder.py
+├─ retrieval/            # 检索增强：hybrid.py(BM25+向量 RRF) / reranker.py(DashScope 重排)
 ├─ scripts/              # generate_samples / run_chunking / run_vectorize
-│                        #   query_retrieval / eval_retrieval / run_rag
-├─ docs/                 # 方案 + 技术栈 + 问题与处理记录 + 故障报告 + 疑问解答
+│                        #   query_retrieval / eval_retrieval / run_rag / gen_answers
+├─ tests/                # pytest：test_chunker / test_cleaner（切片+清洗逻辑）
+├─ docs/                 # 方案 + 技术栈 + 问题与处理记录 + 故障报告 + 疑问解答 + 评测复盘
 ├─ examples/             # 真实公告的解析产物样例（提取 Blocks / 切片 chunks，受版本控制）
-├─ data/                 # samples/processed/chunks/chroma/eval（运行后生成，不入库）
+├─ data/                 # processed/chunks/chroma/eval（运行后生成，不入库）
+├─ requirements.txt      # 直接依赖 + 版本说明（锁版原因见 docs/故障报告.md）
 └─ MEMORY.md             # 开发记忆 / 当前进展 / 待办
 ```
 
@@ -116,6 +119,7 @@ RAG/
 | 文档 | 内容 |
 |---|---|
 | `examples/README.md` | 真实公告**解析产物样例**：提取 Blocks + 切片 chunks，含局限说明 |
+| `docs/评测复盘.md` | 基础/复杂/优化后问答 + 检索指标对比（含阈值拒答、诚实边界） |
 | `docs/技术栈.md` | 技术栈与排除项明细 |
 | `docs/面试要点.md` | RAG 标准化流程讲解 + 各步「我的思考/解决思路/延伸思考」+ 面试级回答 |
 | `docs/数据准备方案.md` | 数据准备（提取/清洗/中间表示）方案 |
