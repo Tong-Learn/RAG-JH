@@ -13,7 +13,7 @@
 ② 切片       结构感知：标题栈→section_path / 表格整体 / 目标大小聚合 / 按句切 / 句边界 overlap / 过短回并
 ③ 向量化     DashScope qwen3.7-text-embedding(1024) → chromadb 0.6.3(hnsw:space=cosine)
 ④ 检索       同源 embedding 向量化 → 余弦 top-k → 带溯源坐标(doc+section_path+start/end_block)
-⑤ 生成       检索上下文 → DashScope chat(默认 qwen-plus) → 带[1][2]引用回答
+⑤ 生成       检索上下文 → DashScope chat(默认 qwen3.8-max) → 带[1][2]引用回答
 ```
 
 - **核心中间表示**：`Block(kind=...)` 语义标签承载结构，md 仅作人工核对。

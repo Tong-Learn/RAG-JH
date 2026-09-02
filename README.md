@@ -9,7 +9,7 @@
 
 ## 处理对象 / 适用范围
 
-本项目的处理对象是 **《晶核》游戏官方更新公告**（27 份 PDF）—— 头尾规整、标题化、含列表/表格的**高结构化公告**。它是**一套针对"单份公告型文档 + 公告集合问答"的自研 RAG 链路**，**不是**一个可泛化到任意文档的通用 RAG 框架：
+本项目的处理对象是 **《晶核》游戏官方更新公告**（54 份 PDF）—— 头尾规整、标题化、含列表/表格的**高结构化公告**。它是**一套针对"单份公告型文档 + 公告集合问答"的自研 RAG 链路**，**不是**一个可泛化到任意文档的通用 RAG 框架：
 
 - 管线：提取 → 结构感知切片 → 向量化 → 检索 → 生成（见下文「技术链路」）。
 - 对**无结构 / 复杂排版 / 多栏混排**的文档，解析与切片策略需单独调整（见 `docs/数据准备方案.md`、`docs/切片方案.md`）。
@@ -23,10 +23,12 @@
 |---|---|
 | 语言 / 运行环境 | Python 3.11（`.venv_rag311`） |
 | 文档解析 | PyMuPDF (fitz) / python-docx / openpyxl / python-pptx / 标准库 |
-| 向量化 | DashScope `qwen3.7-text-embedding`（1024 维） |
+| 向量化 | DashScope `qwen3.7-text-embedding`（1024 维；额度不足回退 `...-flash`） |
 | 向量库 | chromadb 0.6.3 + chroma-hnswlib 0.7.6（`hnsw:space=cosine`） |
-| 生成 | DashScope chat（默认 `qwen-plus`） |
-| 依赖版本 | onnxruntime 1.19.2 · posthog 3.x · numpy `<2` |
+| 检索 | 同源向量余弦（top-k）+ 混合检索（BM25 `rank_bm25`+`jieba` 与向量 RRF 融合） |
+| 重排序 | DashScope `qwen3.7-text-rerank`（重排 top-k） |
+| 生成 | DashScope chat（默认 `qwen3.8-max`） |
+| 依赖版本 | chromadb==0.6.3 · numpy 1.26.4(<2) · rank_bm25 · jieba · pytest（详见 `requirements.txt`） |
 
 > 版本锁定原因、故障与排障见 `docs/故障报告.md`；更细的选型与排除项见 `docs/技术栈.md`。
 
@@ -44,15 +46,17 @@
    ▼  ④ 向量化(DashScope qwen3.7) → chromadb 入库
 【切片+向量化】 data/chunks/*.chunks.jsonl → data/chroma（集合 rag_chunks, cosine）
 
-   │  ⑤ 检索(同源 embedding) → 拼上下文 → 千问生成带引用回答
-【检索+生成】 scripts/query_retrieval.py / run_rag.py
+   │  ⑤ 检索(同源 embedding；可选 BM25+向量 RRF 混合 + DashScope 重排) → 拼上下文 → 生成带引用回答
+【检索+生成】 scripts/query_retrieval.py / eval_retrieval.py / run_rag.py / gen_answers.py
 ```
 
 ## 核心设计（为什么这样设计）
 
 - **核心中间表示**：`Block(kind=heading/para/table)` —— 用**语义标签**承载结构（标题/段落/表格），而非裸文本。不是把文档转成 Markdown（有损、丢失表格），而是按原格式直接解析，`md` 仅作人工核对。
 - **结构感知切片**（而非固定大小）：直接读 `Block.kind` 判边界——标题为一节边界（维护标题栈得 `section_path`）、表格整体不可拆、段落按目标大小聚合、超长**按句切（不切半句）**、过短回并、切点附「句边界 overlap」。
-- **溯源坐标**：每个 chunk 带 `id/doc/section_path/text/rows/start_block/end_block`，**进库即带坐标**；检索命中后靠 `doc + section_path + start/end_block` 回溯回原文，满足「附原文链接」。
+- **溯源坐标**：每个 chunk 带 `id/doc/section_path/text/rows/start_block/end_block/start_page/end_page`，**进库即带坐标**；检索命中后靠 `doc + section_path + start/end_block(+page)` 回溯回原文，满足「附原文链接」。
+- **检索增强**：除同源向量 top-k 外，可加 **BM25+向量 RRF 混合**（`retrieval/hybrid.py`，补字符串/数字/专名短板）+ **DashScope 重排**（`retrieval/reranker.py`）；复杂集实测 P@1 由 0.846 提升到 **1.000**（见 `docs/评测复盘.md`）。
+- **阈值拒答**：`run_rag --min-score`（校准 0.70），top-1 相似度低则**拒答**「资料中没有相关信息」，不调生成，防幻觉（见 `docs/评测复盘.md` 第五节）。
 - `id` 用**全局递增短键** `chunk_{序号:06d}`（不再含标题），完整标题/溯源放在 `doc`/`section_path` 等 metadata。
 
 ## 简历亮点（个性化 vs 生产）
@@ -86,12 +90,21 @@
 # 4. 检索冒烟
 .venv_rag311\Scripts\python.exe -m scripts.query_retrieval "问题" [-k N]
 
-# 5. 端到端生成（带引用回答）
-.venv_rag311\Scripts\python.exe -m scripts.run_rag "问题" [-k 4] [--model qwen-plus]
+# 5. 端到端生成（带引用回答 + 页码；--min-score 拒答）
+.venv_rag311\Scripts\python.exe -m scripts.run_rag "问题" [-k 4] [--min-score 0.70]
+
+# 6. 检索评估（三段：vector_only / hybrid / hybrid_rerank）
+.venv_rag311\Scripts\python.exe -m scripts.eval_retrieval --mode hybrid_rerank -k 3 --sets complex
+
+# 7. 批量生成回答（复盘用）
+.venv_rag311\Scripts\python.exe scripts\gen_answers.py --mode hybrid_rerank --sets complex --min-score 0.70 --out data\eval\answers_rerank.jsonl
+
+# 8. 单元测试
+.venv_rag311\Scripts\python.exe -m pytest tests/ -q
 ```
 
 - 配置在 `.env`：`DASHSCOPE_API_KEY` + `DASHSCOPE_EMBEDDING_MODEL`（默认 `qwen3.7-text-embedding`）。**不要提交 `.env`**（已 `.gitignore`）；可复制 `.env.example` 改名 `_env` 查看格式。
-- 源语料 `test/`（27 份真实游戏公告 PDF，约 68.6MB）**不纳入版本控制**（已 `.gitignore`），仅本地运行用。复现方式见下方「源语料说明」。
+- 源语料 `test/`（54 份真实游戏公告 PDF，约 68.6MB）**不纳入版本控制**（已 `.gitignore`），仅本地运行用。复现方式见下方「源语料说明」。
 
 > **源语料说明**：仓库不携带 `test/` 原件（大体积 + 版权考虑）。复现链路时，将任意 PDF/Word/Excel/PPT/txt/md 放入本地目录，用 `preprocessing.pipeline --src <源文档目录>` 处理即可；
 > 或运行 `python scripts/generate_samples.py` 生成含噪音的多格式样例（入库前提是已配置 `DASHSCOPE_API_KEY`）。
