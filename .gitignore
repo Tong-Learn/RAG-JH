@@ -30,7 +30,7 @@ data/eval/answers_*.jsonl
 data/samples/
 
 # ---- 源语料（大体积 / 版权，不纳入版本控制）----
-# 说明：test/ 下为真实游戏公告 PDF（54 份，约 68.6MB），仅本地运行用。
+# 说明：test/ 下为真实游戏公告 PDF（54 份，约 125.4MB），仅本地运行用。
 # 仓库不做存储；如需复现，请自行放置 PDF 或改用 scripts/generate_samples.py。
 test/
 

@@ -13,7 +13,7 @@
 
 - 管线：提取 → 结构感知切片 → 向量化 → 检索 → 生成（见下文「技术链路」）。
 - 对**无结构 / 复杂排版 / 多栏混排**的文档，解析与切片策略需单独调整（见 `docs/数据准备方案.md`、`docs/切片方案.md`）。
-- **样例**：仓库附带 `examples/`（**真实公告**的解析产物 + 一次端到端问答演示），见「样例」。完整源语料 `test/`（68.6MB PDF）**不纳入版本控制**，仅本地运行用。
+- **样例**：仓库附带 `examples/`（**真实公告**的解析产物 + 一次端到端问答演示），见「样例」。完整源语料 `test/`（125.4MB PDF）**不纳入版本控制**，仅本地运行用。
 
 ---
 
@@ -104,7 +104,7 @@
 ```
 
 - 配置在 `.env`：`DASHSCOPE_API_KEY` + `DASHSCOPE_EMBEDDING_MODEL`（默认 `qwen3.7-text-embedding`）。**不要提交 `.env`**（已 `.gitignore`）；可复制 `.env.example` 改名 `_env` 查看格式。
-- 源语料 `test/`（54 份真实游戏公告 PDF，约 68.6MB）**不纳入版本控制**（已 `.gitignore`），仅本地运行用。复现方式见下方「源语料说明」。
+- 源语料 `test/`（54 份真实游戏公告 PDF，约 125.4MB）**不纳入版本控制**（已 `.gitignore`），仅本地运行用。复现方式见下方「源语料说明」。
 
 > **源语料说明**：仓库不携带 `test/` 原件（大体积 + 版权考虑）。复现链路时，将任意 PDF/Word/Excel/PPT/txt/md 放入本地目录，用 `preprocessing.pipeline --src <源文档目录>` 处理即可；
 > 或运行 `python scripts/generate_samples.py` 生成含噪音的多格式样例（入库前提是已配置 `DASHSCOPE_API_KEY`）。

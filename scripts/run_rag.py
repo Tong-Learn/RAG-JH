@@ -5,9 +5,9 @@
 流程：
   1) 用与入库相同的 embedding 模型向量化问题，在 chromadb 里余弦检索 top-k chunk；
   2) 把每个 chunk 编号 [1][2]...，连同 doc/section 附录拼进上下文；
-  3) 让生成模型(默认 qwen-plus)仅依据上下文作答，并标注引用来源。
+  3) 让生成模型(默认 qwen3.8-max)仅依据上下文作答，并标注引用来源。
 
-运行：.venv_rag311\\Scripts\\python.exe -m scripts.run_rag "问题" [-k 4] [--model qwen-plus]
+运行：.venv_rag311\\Scripts\\python.exe -m scripts.run_rag "问题" [-k 4] [--model qwen3.8-max] [--min-score 0.70]
 """
 import argparse
 import json
