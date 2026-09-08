@@ -6,11 +6,8 @@ chromadb==0.6.3         # Windows 下 hnsw batch_size 边界触发 0xC0000005，
 chroma-hnswlib==0.7.6
 numpy==1.26.4           # <2，兼容 chromadb 0.6.3
 
-# --- 文档解析 ---
+# --- 文档解析（本项目只处理 PDF 游戏公告）---
 PyMuPDF==1.28.2         # PDF：文本层 + find_tables()（含 pymupdf-layout 子模块）
-python-docx==1.2.0
-python-pptx==1.0.2
-openpyxl==3.1.5
 
 # --- 网络（DashScope OpenAI 兼容接口）---
 requests==2.34.2

@@ -16,15 +16,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import chromadb
 import requests
-from chromadb.config import Settings
 
 from embedding.dashscope_embedder import DashScopeEmbedder, load_env, _get_env
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CHROMA_DIR = PROJECT_ROOT / "data" / "chroma"
-COLLECTION = "rag_chunks"
+from scripts._common import get_collection, PROJECT_ROOT
+from retrieval.search import vector_search
 
 # 默认生成模型（可 --model 覆盖）
 DEFAULT_CHAT_MODEL = "qwen3.8-max"
@@ -53,17 +49,6 @@ def chat(messages, model=DEFAULT_CHAT_MODEL, max_tokens=1024, temperature=0.3, t
     if resp.status_code != 200:
         raise RuntimeError(f"DashScope 生成失败: HTTP {resp.status_code}: {resp.text[:200]}")
     return resp.json()["choices"][0]["message"]["content"]
-
-
-def retrieve(embedder, col, query, k):
-    qvec = embedder.embed_one(query)
-    res = col.query(query_embeddings=[qvec], n_results=k)
-    out = []
-    for dist, cid, doc, meta in zip(res["distances"][0], res["ids"][0],
-                                    res["documents"][0], res["metadatas"][0]):
-        score = 1 - dist
-        out.append({"id": cid, "score": score, "text": doc, "meta": meta})
-    return out
 
 
 def build_context(hits):
@@ -95,10 +80,9 @@ def main():
     question = " ".join(args.question) or DEFAULT_QUESTION
 
     embedder = DashScopeEmbedder()
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=Settings(anonymized_telemetry=False))
-    col = client.get_or_create_collection(COLLECTION)
+    col = get_collection()
 
-    hits = retrieve(embedder, col, question, args.k)
+    hits = vector_search(embedder, col, question, args.k)
     print(f"问题: {question}\n检索 top-{args.k}:")
     for h in hits:
         print(f"  - [{h['id']}] 相似度={h['score']:.3f}  {h['text'][:46]}...")

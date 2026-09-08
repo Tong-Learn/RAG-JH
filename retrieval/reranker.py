@@ -30,7 +30,7 @@ class DashScopeReranker:
         body = {
             "model": self.model,
             "input": {"query": query, "documents": docs},
-            "parameters": {"top_n": max(k, min(len(docs), self.top_n))},
+            "parameters": {"top_n": min(len(docs), self.top_n)},  # top_n 不能超过候选数(修复越界)
         }
         resp = requests.post(RERANK_URL, headers={"Authorization": f"Bearer {self.api_key}",
                                                  "Content-Type": "application/json"},
@@ -43,5 +43,7 @@ class DashScopeReranker:
         for r in ranked[:k]:
             idx = r["index"]
             if 0 <= idx < len(candidates):
-                out.append(candidates[idx])
+                cand = dict(candidates[idx])              # 拷贝后附 relevance，避免改动原候选
+                cand["score"] = r["relevance_score"]      # 让 hit 的 score 变成重排 relevance(可用于阈值/展示)
+                out.append(cand)
         return out

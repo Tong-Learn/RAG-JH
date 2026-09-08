@@ -5,8 +5,8 @@
   - *.md     渲染后的文本，仅供人眼核对提取效果
 同时生成 manifest.jsonl，记录每份文档的来源、格式、块数、字符数。
 运行：.venv_rag311\Scripts\python.exe -m preprocessing.pipeline [--src DIR] [--out DIR]
-  --src 缺省 data/samples；--out 缺省 data/processed
-  （本模块依赖 fitz/docx/openpyxl/pptx，已装入 .venv_rag311，与向量化同用一个解释器）
+  --src 缺省 test(当前语料)；--out 缺省 data/processed
+  （本模块依赖 fitz(PyMuPDF)，用于 PDF 提取；与向量化同用一个解释器）
 """
 import dataclasses
 import json
@@ -15,7 +15,7 @@ from pathlib import Path
 from preprocessing.extractors import EXTRACTORS, Block
 from preprocessing.cleaner import clean_blocks
 
-SRC_DIR = Path(__file__).resolve().parents[1] / "data" / "samples"
+SRC_DIR = Path(__file__).resolve().parents[1] / "test"
 OUT_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 
 

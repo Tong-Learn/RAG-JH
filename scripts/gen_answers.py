@@ -2,10 +2,10 @@
 """
 生成 RAG 回答并落盘（用于复盘文档）。对 data/eval/qa_*.jsonl 逐题：
   检索 top-k -> 按 min_score 阈值拒答 -> 通过则用 qwen3.8-max 生成带引用回答。
---mode vector_only | hybrid_rerank 控制检索方式。
+两条检索路线：--mode vector_only | hybrid_rerank。
 输出 JSONL：{id,set,category,type,query,expected_doc,mode,top1,topk:[{id,doc,section,page,score}],rejected,answer}
 
-运行：.venv_rag311\Scripts\python.exe scripts\gen_answers.py --mode vector_only --sets all --min-score 0.70 --out data/eval/answers_vector.jsonl
+运行：.venv_rag311\\Scripts\\python.exe scripts\\gen_answers.py --mode hybrid_rerank --sets complex --min-score 0.70 --out data\\eval\\answers_rerank.jsonl
 """
 import argparse
 import json
@@ -14,53 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import chromadb
-from chromadb.config import Settings
-
 from embedding.dashscope_embedder import DashScopeEmbedder
+from scripts._common import get_collection, load_queries, PROJECT_ROOT
 from scripts.run_rag import chat, build_context, DEFAULT_CHAT_MODEL
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-CHROMA_DIR = PROJECT_ROOT / "data" / "chroma"
-EVAL_DIR = PROJECT_ROOT / "data" / "eval"
-COLLECTION = "rag_chunks"
-
-
-def load_queries(sets):
-    qs = []
-    for fn in ("qa_basic.jsonl", "qa_complex.jsonl"):
-        p = EVAL_DIR / fn
-        if not p.exists():
-            continue
-        for line in p.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line:
-                q = json.loads(line)
-                if sets == "all" or q.get("set") == sets:
-                    qs.append(q)
-    return qs
-
-
-def make_search(mode, embedder, col):
-    if mode == "vector_only":
-        def search(q, k):
-            qvec = embedder.embed_one(q)
-            res = col.query(query_embeddings=[qvec], n_results=k)
-            out = []
-            for dist, cid, doc, meta in zip(res["distances"][0], res["ids"][0],
-                                            res["documents"][0], res["metadatas"][0]):
-                out.append({"id": cid, "score": 1 - dist, "text": doc, "meta": meta})
-            return out
-        return search
-    from retrieval.hybrid import build_hybrid_search
-    from retrieval.reranker import DashScopeReranker
-    hs = build_hybrid_search(col, embedder, PROJECT_ROOT / "data" / "chunks")
-    rr = DashScopeReranker()
-
-    def search(q, k):
-        cand = hs.search(q, k=max(20, k + 6), rerank=False)
-        return rr.rerank(q, cand, k)
-    return search
+from retrieval.search import make_search
 
 
 def gen_answer(query, hits, model, min_score):
@@ -92,9 +49,8 @@ def main():
 
     queries = load_queries(args.sets)
     embedder = DashScopeEmbedder()
-    client = chromadb.PersistentClient(path=str(CHROMA_DIR), settings=Settings(anonymized_telemetry=False))
-    col = client.get_or_create_collection(COLLECTION)
-    search = make_search(args.mode, embedder, col)
+    col = get_collection()
+    search = make_search(args.mode, embedder, col, PROJECT_ROOT / "data" / "chunks")
 
     results = []
     for q in queries:
@@ -106,8 +62,10 @@ def main():
         topk = []
         for h in r.get("hits", []):
             meta = h["meta"]
+            pg = [meta.get("start_page"), meta.get("end_page")]
             topk.append({"id": h["id"], "doc": meta.get("doc"),
-                         "section": meta.get("section_path"), "page": [meta.get("start_page"), meta.get("end_page")],
+                         "section": meta.get("section_path"),
+                         "page": pg if pg[0] else None,
                          "score": round(h["score"], 3)})
         results.append({
             "id": q["id"], "set": q["set"], "category": q["category"], "type": q["type"],

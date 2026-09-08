@@ -21,15 +21,15 @@
 
 ## 数据形态速览
 
-**Block（`*_blocks.jsonl`，以 `7月8日…` 为例：111 个块 = heading + para）**
+**Block（`*_blocks.jsonl`，以 `7月8日…` 为例：110 个块 = heading + para）**
 ```json
 {"kind": "heading", "text": "三周年庆典活动"}
 {"kind": "para", "text": "阿特兰世界与大家见面就快3周年啦……"}
 ```
 
-**Chunk（`*_chunks.jsonl`，以 `7月8日…` 为例：44 个 chunk）**
+**Chunk（`*_chunks.jsonl`，以 `7月8日…` 为例：50 个 chunk）**
 ```json
-{"id": "chunk_000364",
+{"id": "chunk_000381",
  "doc": "7月8日更新公告丨新职业「艾尔莎」上线 三周年庆典活动开启",
  "section_path": ["7月8日更新公告丨新职业「艾尔莎」上线 三周年庆典活动开启"],
  "text": "7月8日更新公告丨新职业「艾尔莎」上线 三周年庆典活动开启\n亲爱的冒险者：……",
@@ -51,5 +51,5 @@
 
 ## 重复说明
 
-- 全量结果：54 份公告 → **578 chunk** → chroma 578 行（cosine）。此处仅节选 2 份作样例。
+- 全量结果：54 份公告 → **605 chunk** → chroma 605 行（cosine）。此处仅节选 2 份作样例。
 - 目录本身**受版本控制**（不像 `test/`、`data/chroma|processed|chunks` 那样被 `.gitignore` 忽略）。

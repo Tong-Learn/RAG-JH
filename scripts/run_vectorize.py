@@ -4,11 +4,11 @@
 
 映射策略（回答「如何与原切片对应」）：
   向量库一行 = {id, embedding, document, metadata}，由现有 chunk 直接映射：
-    id        <- chunk.id           (如 "示例1#3")，检索后靠它回映射到原 chunk
+    id        <- chunk.id           (如 "chunk_000123")，检索后靠它回映射到原 chunk
     embedding <- embed(chunk.text)
     document  <- chunk.text         (正文/检索展示)
-    metadata  <- doc/section_path/kind_comp/start_block/end_block/char_len/overlap
-  metadata 里保留全部溯源坐标，命中后再靠 doc+section_path+start/end_block 回溯回原文档。
+    metadata  <- doc/section_path/start_block/end_block/start_page/end_page
+  metadata 里保留全部溯源坐标，命中后再靠 doc+section_path+start/end_block(+page) 回溯回原文档。
 
 运行：.venv_rag311\\Scripts\\python.exe -m scripts.run_vectorize
 依赖：.venv_rag311 里的 chromadb 0.6.3、numpy 1.26.4、requests；DASHSCOPE_API_KEY(项目 .env)
@@ -20,18 +20,11 @@ from pathlib import Path
 # 本项目允许以脚本方式直接运行
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import chromadb
-from chromadb.config import Settings
-
 from embedding.dashscope_embedder import DashScopeEmbedder
+from scripts._common import get_client, PROJECT_ROOT, CHROMA_DIR, COLLECTION
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CHUNKS_DIR = PROJECT_ROOT / "data" / "chunks"
-CHROMA_DIR = PROJECT_ROOT / "data" / "chroma"
 
-# 集合名（chromadb 0.6.3 要求 ≥3 字符、[a-zA-Z0-9._-]）
-COLLECTION = "rag_chunks"
 # 距离度量：余弦相似度（chunk 检索常用），chroma 中 distance 越小越好，0=完全一致、2=完全不相关
 SPACE = "cosine"
 
@@ -81,10 +74,7 @@ def main():
 
     # 2. 入 chromadb（persistent）
     print(f"[2/3] 写入 chromadb collection '{COLLECTION}' ({SPACE}) ...")
-    client = chromadb.PersistentClient(
-        path=str(CHROMA_DIR),
-        settings=Settings(anonymized_telemetry=False, allow_reset=True),
-    )
+    client = get_client(allow_reset=True)
     # 幂等重建：先删除旧集合再新建（delete(where={}) 在 0.6.3 不会清空，只会留下 upsert 警告）
     try:
         client.delete_collection(COLLECTION)

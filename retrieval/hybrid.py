@@ -7,7 +7,7 @@
 - 两个排序用 RRF 融合，避免分数尺度不可比；k 取 60（常用经验值）；
 - tokenize 优先 jieba 分词，否则回退「中文逐字 + 英文数字整词」（不依赖 jieba 也能跑，精度略低）。
 
-search(query, k, rerank=False)：默认融合后取 top-k（rerank 由 el_retrieval 里再套 DashScope rerank）。
+search(query, k)：融合后返回 top-k 候选（供重排；本项目不再单用作独立检索路线）。
 """
 import json
 import re
@@ -63,7 +63,7 @@ class HybridSearch:
         order = sorted(range(len(scores)), key=lambda i: -scores[i])[:k]
         return [self._ids[i] for i in order if scores[i] > 0]
 
-    def search(self, query, k=4, rerank=False):
+    def search(self, query, k=4):
         n = max(20, k + 6)
         vec = self._vector(query, n)
         bm = self._bm25_top(query, n)

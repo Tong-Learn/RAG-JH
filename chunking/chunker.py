@@ -143,6 +143,8 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
 
     id 采用全局递增短键 `chunk_{序号:06d}`(id_start + 本文档内自增)，把完整溯源
     (doc/section_path/start_block/end_block) 留在 metadata，id 只保证唯一 + 短。
+    【注意】id_start 为外部传入的全局计数：跨文档多次调用本函数时，须传入递增的 id_start，
+    否则会产出重复 chunk id（run_chunking 已按全局 gidx 传入）。
     """
     overlap_chars = max(1, int(chunk_size * overlap_ratio))
     doc = doc or ""

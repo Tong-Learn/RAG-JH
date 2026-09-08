@@ -1,17 +1,15 @@
 {"kind": "heading", "text": "8月19日更新公告丨PVP玩法平衡调整 艾尔莎转职限制解除", "level": 1, "rows": [], "page": 1}
+{"kind": "heading", "text": "规", "level": 2, "rows": [], "page": 1}
+{"kind": "heading", "text": "常服", "level": 2, "rows": [], "page": 1}
 {"kind": "para", "text": "亲爱的冒险者：", "level": 1, "rows": [], "page": 1}
 {"kind": "para", "text": "为了给冒险者们提供更好的体验，协会将于2026年8月19日07:00起对阿特兰世界进行维护，预计停服维护3小时（可能根据实际情况提前或延后），届时服务器将关闭，冒险者们暂时无法登录游戏。维护结束后，请重启客户端并完成更新后再进入游戏，以开启新的冒险。", "level": 1, "rows": [], "page": 1}
 {"kind": "para", "text": "维护更新前已创建角色的冒险者将获得维护补给：晶珀*100，将通过邮件发放，每个账号仅能领取1次，请及时领取，感谢冒险者们的支持与配合。", "level": 1, "rows": [], "page": 1}
 {"kind": "para", "text": "以下为本次维护更新的具体信息：", "level": 1, "rows": [], "page": 1}
 {"kind": "heading", "text": "维护更新内容", "level": 2, "rows": [], "page": 1}
-{"kind": "heading", "text": "艾尔莎", "level": 2, "rows": [], "page": 1}
-{"kind": "heading", "text": "解除转职限制", "level": 2, "rows": [], "page": 1}
+{"kind": "heading", "text": "艾尔莎解除转职限制", "level": 2, "rows": [], "page": 1}
 {"kind": "para", "text": "维护后，「艾尔莎」将可以转职为其他职业。", "level": 1, "rows": [], "page": 1}
 {"kind": "heading", "text": "远古战场赛区战奖励调整", "level": 2, "rows": [], "page": 1}
 {"kind": "para", "text": "更新了远古战场的赛区战奖励，可前往「远古战场」-「赛程」-「奖励预览」查看。", "level": 1, "rows": [], "page": 1}
-{"kind": "heading", "text": "常", "level": 2, "rows": [], "page": 1}
-{"kind": "heading", "text": "规", "level": 2, "rows": [], "page": 1}
-{"kind": "heading", "text": "服", "level": 2, "rows": [], "page": 1}
 {"kind": "heading", "text": "PVP玩法数值平衡性调整", "level": 2, "rows": [], "page": 2}
 {"kind": "para", "text": "通过观察数据与收集各位冒险者的反馈，我们决定进行以下平衡性调整：", "level": 1, "rows": [], "page": 2}
 {"kind": "para", "text": "1、在矿井争夺战、远古战场、逐强争霸玩法中，将对整体战斗节奏进行放缓，角色伤害比例进行下调。", "level": 1, "rows": [], "page": 2}
@@ -19,12 +17,12 @@
 {"kind": "para", "text": "3、在竞技模式：远古战场、矿井争夺战和逐强争霸中，禁用驭星、音爆和机械师的飞行能力。", "level": 1, "rows": [], "page": 2}
 {"kind": "heading", "text": "问题修复", "level": 2, "rows": [], "page": 2}
 {"kind": "para", "text": "1、修复了「魔权之翼染色」界面中，偶现的显示错误配饰的问题。", "level": 1, "rows": [], "page": 2}
+{"kind": "heading", "text": "季", "level": 2, "rows": [], "page": 2}
+{"kind": "heading", "text": "赛服", "level": 2, "rows": [], "page": 2}
 {"kind": "para", "text": "亲爱的冒险者：", "level": 1, "rows": [], "page": 2}
 {"kind": "para", "text": "为了给冒险者们提供更好的体验，协会将于2026年8月19日07:00起对阿特兰世界进行维护，预计停服维护3小时（可能根据实际情况提前或延后），届时服务器将关闭，冒险者们暂时无法登录游戏。维护结束后，请重启客户端并完成更新后再进入游戏，以开启新的冒险。", "level": 1, "rows": [], "page": 2}
 {"kind": "para", "text": "维护更新前已创建角色的冒险者将获得维护补给：晶珀*100，将通过邮件发放，每个账号仅能领取1次，请及时领取，感谢冒险者们的支持与配合。", "level": 1, "rows": [], "page": 2}
 {"kind": "para", "text": "以下为本次维护更新的具体信息：", "level": 1, "rows": [], "page": 2}
-{"kind": "heading", "text": "赛", "level": 2, "rows": [], "page": 2}
-{"kind": "heading", "text": "季", "level": 2, "rows": [], "page": 2}
 {"kind": "para", "text": "通过观察数据与收集各位冒险者的反馈，我们决定进行以下平衡性调整：", "level": 1, "rows": [], "page": 3}
 {"kind": "para", "text": "1、在远古战场玩法中，将对防御塔血量进行下调，另外对整体战斗节奏进行放缓，角色伤害比例进行下调。", "level": 1, "rows": [], "page": 3}
 {"kind": "para", "text": "2、在排位赛玩法中，将对整体战斗节奏略微加速，角色伤害比例提升。", "level": 1, "rows": [], "page": 3}

@@ -16,3 +16,9 @@
 {"id": "b16", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "《原神》4.0版本枫丹有哪些新角色？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
 {"id": "b17", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "银行卡挂失后多久能补办？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
 {"id": "b18", "set": "basic", "category": "irrelevant", "type": "off_topic", "query": "超导量子比特需要维持多少开尔文的低温？", "expected_doc": "", "expected_section": "", "note": "领域外", "hard": true}
+{"id": "v01", "set": "basic", "category": "answerable", "type": "normal", "query": "「万象回廊」深坠阶段的塔层上限调整为多少层？", "expected_doc": "11月19日更新公告丨万象回廊第九期开启 角色转换和单人团本优化", "expected_section": "万象回廊第九期", "note": "验证题·第九期塔层上限17层", "hard": false}
+{"id": "v02", "set": "basic", "category": "answerable", "type": "normal", "query": "12月17日上架的圣诞新时装叫什么？", "expected_doc": "12月17日更新公告丨拂雪节系列活动上线 新时装&新载具登场", "expected_section": "圣诞新时装-雪域风行", "note": "验证题·雪域风行", "hard": false}
+{"id": "v03", "set": "basic", "category": "answerable", "type": "normal", "query": "12月17日上架的圣诞新载具叫什么？", "expected_doc": "12月17日更新公告丨拂雪节系列活动上线 新时装&新载具登场", "expected_section": "圣诞新载具-铃尾柯柯", "note": "验证题·铃尾柯柯", "hard": false}
+{"id": "v04", "set": "basic", "category": "answerable", "type": "normal", "query": "「金宵踏瑞」版本新增的团本叫什么？", "expected_doc": "2月4日更新公告丨「金宵踏瑞」版本开启 新团本新时装新宠物新活动来袭", "expected_section": "新团本-机械要塞", "note": "验证题·机械要塞", "hard": false}
+{"id": "v05", "set": "basic", "category": "answerable", "type": "normal", "query": "2月4日版本新增的宠物叫什么？", "expected_doc": "2月4日更新公告丨「金宵踏瑞」版本开启 新团本新时装新宠物新活动来袭", "expected_section": "新宠物-玄墨飞骏", "note": "验证题·玄墨飞骏", "hard": false}
+{"id": "v06", "set": "basic", "category": "answerable", "type": "normal", "query": "「雪域风行」礼包售价多少晶珀？", "expected_doc": "12月17日更新公告丨拂雪节系列活动上线 新时装&新载具登场", "expected_section": "圣诞新时装-雪域风行", "note": "验证题·雪域风行2480晶珀", "hard": false}

@@ -3,6 +3,10 @@
 .env.local
 .env.*.local
 
+# ---- 文档 / 本地记忆（不入库）----
+docs/
+MEMORY.md
+
 # ---- Python ----
 __pycache__/
 *.py[cod]
@@ -38,8 +42,6 @@ test/
 .venv/
 .venv_rag/
 .venv_rag311/
-.venv_rag12/
-.venv_tmp/
 venv/
 
 # ---- 编辑器 / 系统 ----

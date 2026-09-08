@@ -16,9 +16,12 @@ PAGE_NOISE = [
 ]
 # HTML 注释
 HTML_COMMENT = re.compile(r"<!--.*?-->", flags=re.S)
-# 文章元数据行：以「日期 时间」开头、且很短(如「2026年4月13日 18:32上海晶核CoA听全文」)。
-# 用「日期+时间」的通用形态而非写死来源名(避免过拟合)，靠「很短 + 无句末标点」来限定。
-META_LINE_RE = re.compile(r"^\s*\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日\s+\d{1,2}:\d{2}")
+# 文章元数据行，形如「晶核CoA 2026年2月9日 18:13上海听全文」「晶核CoA 2025年11月10日 19:11上海2人」。
+# 【修复】日期+时间并不总在行首（来源名可能在其前），旧正则锚定 `^` 会漏掉，导致「晶核CoA」「听全文」
+# 被当成内容/标题残留在产物里。改用「日期+时间」出现在行内 + 行很短 + 以元数据尾标记(听全文/N人)收尾 的通用形态，
+# 不写死来源名（避免过拟合），也不会误伤「测试时间：2026年6月17日11:00至7月6日06:00」这类含日期时间的正文。
+META_LINE_RE = re.compile(r"\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日\s+\d{1,2}:\d{2}")
+META_TAIL_RE = re.compile(r"(听全文|\d+\s*人)$")
 META_LINE_MAX_LEN = 35
 
 
@@ -38,8 +41,8 @@ def _is_noise(text: str) -> bool:
     for pat in PAGE_NOISE:
         if pat.search(text):
             return True
-    # 文章元数据行：日期+时间开头且很短(排正文；正文长或带句末标点不会命中)
-    if len(text) <= META_LINE_MAX_LEN and META_LINE_RE.match(text):
+    # 文章元数据行：含「日期+时间」且很短、以「听全文/N人」收尾(排正文；正文长或非元数据尾标记不会命中)
+    if len(text) <= META_LINE_MAX_LEN and META_LINE_RE.search(text) and META_TAIL_RE.search(text):
         return True
     return False
 
