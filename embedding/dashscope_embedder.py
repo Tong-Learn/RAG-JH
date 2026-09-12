@@ -4,7 +4,7 @@ DashScope(阿里云千问) 文本向量化封装。
 
 设计要点：
 - 走 OpenAI 兼容接口 POST /compatible-mode/v1/embeddings；
-- 模型名可配置（DASHSCOPE_EMBEDDING_MODEL，默认 qwen3.7-text-embedding，1024 维）；
+- 模型名可配置（DASHSCOPE_EMBEDDING_MODEL，默认 qwen3.7-text-embedding-flash，1024 维）；
 - API Key 从环境变量 DASHSCOPE_API_KEY 读取，优先从项目 .env 载入（手动解析，避免额外依赖）；
 - 批量嵌入（单次 ≤10 行），失败自动重试（带退避），保证整批不因偶发网络错误中断；
 - 始终显式传入 embeddings 给 chromadb，不依赖其默认 ONNX 嵌入函数。
@@ -60,7 +60,7 @@ class DashScopeEmbedder:
     def __init__(self, model=None, api_key=None, url=DASHSCOPE_EMBED_URL,
                  batch_size=8, timeout=60, max_retries=3):
         load_env()
-        self.model = model or _get_env("DASHSCOPE_EMBEDDING_MODEL", "qwen3.7-text-embedding")
+        self.model = model or _get_env("DASHSCOPE_EMBEDDING_MODEL", "qwen3.7-text-embedding-flash")
         self.api_key = api_key or _get_env("DASHSCOPE_API_KEY")
         if not self.api_key:
             raise RuntimeError("未配置 DASHSCOPE_API_KEY：请在环境变量或项目 .env 中提供。")

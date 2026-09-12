@@ -44,6 +44,28 @@ FULL_WIDTH_RATIO = 0.90  # 行 x1 >= 右缘*此比例，视为"近满行/换行�
 # 同基线合并容差(pt)：两条标题行的 y0 差在此范围内，视为同一行被拆成两半(如「全新SS-Ⅱ级时装「逝灭魔权」上线」被拆成两行文本)。
 SAME_BASELINE_TOL = 2.0
 
+# 视觉行聚类：同一条「视觉行」(baseline 抖动 / 逐字排版导致 PyMuPDF 拆成多条 line)的纵向重叠阈值。
+# 判定「同一视觉行」的最小纵向重叠比例 = min(两行高度) * 此系数。
+# 实测公告类标题(如「常规服」被排成 规/常/服 三个独立字形、baseline 差 ~3.9pt、x 间距大)会被拆成 3 条 line；
+# 它们的纵向带彼此重叠(重叠>0)，而正文的相邻行带间距≈20pt 不会重叠，故可用「纵向重叠」可靠区分。
+VISUAL_ROW_OVERLAP_RATIO = 0.3
+
+# 视觉行聚类的「x 不重叠」容差(pt)：同一视觉阅读行的相邻字形不应在 x 方向重叠(真标题字形间有 ~12pt 空隙)。
+# 装饰性水印(如「《晶核》《晶核》…」重复 banner)会输出大量 x 方向高度重叠的字形副本，不构成阅读序列，
+# 若一并并入会得到一长串重复文本并被 _heading_level 的 len>50 挡回成正文。用此容差把「x 方向明显重叠的字形」
+# 排除在聚类外，交由原有 same_base 逻辑处理，避免破坏这类水印。
+VISUAL_ROW_X_OVERLAP_TOL = 3.0
+
+# 视觉行聚类的「复原标题长度上限」(字符数)：被拆成散落字形的目标只会是短标题(如「常规服」「赛季服」=3字)。
+# 若聚类会拼出超长文本，说明是装饰性重复水印(如「《晶核》《晶核》…」多次叠加)，不该由聚类去焊成一条，
+# 应原样返回交由原有逻辑处理——避免把水印重排成乱序长串。短标题(<=此上限)才真正聚合成一条。
+VISUAL_ROW_MAX_TITLE_LEN = 20
+
+# 视觉行聚类的「单字字形」长度上限(字符数)：散落排版的只会是标题的单个/两字字形(如「常规服」拆成 规/常/服)。
+# 装饰性水印「《晶核》《晶核》…三周年…」里「《晶核》」「三周年」是整词(>2 字)，不是散落字形；
+# 用此上限排除它们参与聚类，避免把重复水印焊成一条乱序长串(否则会重排水印且被当作一个标题)。
+VISUAL_ROW_GLYPH_MAX_LEN = 2
+
 
 def _estimate_line_h(all_lines):
     """估算正文行高：取相邻行 y0 差值的正数众数(0.5pt 分桶，抗浮点噪声)。"""
@@ -65,6 +87,86 @@ def _join_para_line_parts(parts):
             s += " "
         s += t
     return s
+
+
+def _cluster_visual_row(lines, body_size, overlap_ratio=VISUAL_ROW_OVERLAP_RATIO,
+                        x_overlap_tol=VISUAL_ROW_X_OVERLAP_TOL):
+    """把「同一视觉行」被 PyMuPDF 拆成多条 line 的标题字形聚成一条。
+
+    背景：公告类 PDF 的某些标题(如「常规服」「赛季服」)被排版成逐个字形、字号带内、
+    间距大的独立字形，且首个字形的 baseline 与其余字形略有抖动(实测 ~3.9pt)。
+    PyMuPDF 会把它们拆成多条 line；若按 (y0, x0) 排序，抬高过的首字形会排到最前，
+    且因不满足「同基线/近满行」两门条件，这些字形各自被当成独立 heading(割裂成
+    「规」+「常服」)。
+
+    判定「同一视觉行」且只并「标题候选」：
+      - 两者都过 _heading_level(body_size)>0(皆是标题字形)，避免把标题与同基线的正文误并；
+      - 字号在 HEAD_SIZE_BAND 带内相同(同一标题的字形字号一致)；
+      - 纵向条带(y0..y1)重叠超过 min(两行高度)*overlap_ratio(正文相邻行条带互不重叠)；
+      - x 方向不显著重叠(真标题字形间有 ~12pt 空隙；装饰性水印的字形副本x向高度重叠，属重复非阅读序列)；
+      - 每行都是短字形(<= VISUAL_ROW_GLYPH_MAX_LEN 字)：被散落排版的只会是标题的单个/两字字形
+        (如「常规服」拆成 规/常/服 各 1 字)，而「《晶核》《晶核》…三周年…」这类水印是整词(>2字)，
+        不在同一视觉阅读行的"散落字形"范畴，靠此排除，避免把重复水印焊成一条乱序长串。
+    满足则聚成一行：行内按 x0 重排字形拼接，复原完整标题；bbox 取该行并集。
+    非标题行、x 向重叠的字形、整词水印字原样返回(交由原有 same_base 逻辑处理)，不与任何行合并。
+    """
+    if len(lines) <= 1:
+        return lines
+    # 先按 (y0, x0) 排序，便于按纵向带逐条推进
+    lines = sorted(lines, key=lambda i: (i["bbox"][1], i["bbox"][0]))
+    is_heading = {id(ln): _heading_level(ln, body_size) > 0 for ln in lines}
+    is_glyph = {id(ln): len(ln["text"]) <= VISUAL_ROW_GLYPH_MAX_LEN for ln in lines}
+    rows = []                                  # 每个元素是一个视觉行的 line 列表
+    cur = [lines[0]]
+    cur_y0, cur_y1 = lines[0]["bbox"][1], lines[0]["bbox"][3]
+    cur_x0, cur_x1 = lines[0]["bbox"][0], lines[0]["bbox"][2]
+    cur_size = lines[0]["size"]
+    for ln in lines[1:]:
+        y0, y1 = ln["bbox"][1], ln["bbox"][3]
+        x0, x1 = ln["bbox"][0], ln["bbox"][2]
+        # x 向重叠：当前字形与已聚形范围在 x 方向的横向重叠量(> tol 视为重复字形)
+        x_overlap = min(cur_x1, x1) - max(cur_x0, x0)
+        # 仅当「两行皆为标题候选 + 单字字形 + 字号带内 + 纵向条带重叠 + x 不显著重叠」才并入同一视觉行
+        can_merge = (
+            is_heading[id(ln)] and is_heading[id(cur[0])]
+            and is_glyph[id(ln)] and is_glyph[id(cur[0])]
+            and abs(ln["size"] - cur_size) <= HEAD_SIZE_BAND
+            and (min(cur_y1, y1) - max(cur_y0, y0)) >= min(cur_y1 - cur_y0, y1 - y0) * overlap_ratio
+            and x_overlap <= x_overlap_tol
+        )
+        if can_merge:
+            cur.append(ln)
+            cur_y0 = min(cur_y0, y0)
+            cur_y1 = max(cur_y1, y1)
+            cur_x0 = min(cur_x0, x0)
+            cur_x1 = max(cur_x1, x1)
+            cur_size = max(cur_size, ln["size"])
+        else:
+            rows.append(cur)
+            cur = [ln]
+            cur_y0, cur_y1 = y0, y1
+            cur_x0, cur_x1 = x0, x1
+            cur_size = ln["size"]
+    rows.append(cur)
+    # 每行内按 x0 重排字形并拼接，还原视觉行文本；bbox 取该行覆盖范围。
+    merged = []
+    for row in rows:
+        row.sort(key=lambda i: i["bbox"][0])
+        text = _join_para_line_parts([i["text"] for i in row])
+        # 只把「短标题字形」真正焊成一条：装饰性重复水印(拼出超长文本)不焊，原样返回各行，
+        # 交由原有 same_base 逻辑处理，避免把重复 banner 重排成乱序长串。
+        if len(text) > VISUAL_ROW_MAX_TITLE_LEN:
+            for ln in row:
+                merged.append(ln)
+            continue
+        size = max(i["size"] for i in row)
+        bold = any(i["bold"] for i in row)
+        x0 = min(i["bbox"][0] for i in row)
+        y0 = min(i["bbox"][1] for i in row)
+        x1 = max(i["bbox"][2] for i in row)
+        y1 = max(i["bbox"][3] for i in row)
+        merged.append({"text": text, "size": size, "bold": bold, "bbox": (x0, y0, x1, y1)})
+    return merged
 
 
 def _merge_para_lines(lines, line_h, gap_factor=PARA_GAP_FACTOR):
@@ -224,6 +326,9 @@ def extract_pdf(path: Path):
 
         # PyMuPDF get_text("dict") 返回的 text block 顺序并非版式阅读顺序(标题/正文常被拆到块尾)。
         # 统一把本页所有行按 (y0, x0) 重排成真正的阅读顺序，再逐行判标题/表格/正文。
+        # 重排前先做「视觉行聚类」：把带 baseline 抖动、被拆成多条 line 的标题字形并回一条，
+        # 避免「常规服」被割裂成「规」+「常服」(见 _cluster_visual_row)。
+        all_lines = _cluster_visual_row(all_lines, body_size)
         ordered = sorted(all_lines, key=lambda i: (round(i["bbox"][1], 2), i["bbox"][0]))
         for info in ordered:
             if _rect_in_any(info["bbox"], table_rects):

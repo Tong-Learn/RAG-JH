@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 管线编排：source_dir 里的每个源文档 -> 提取 -> 清洗 -> 分别输出：
-  - *.jsonl  结构化语料(每行一个 Block)，是数据准备的真输出，供下一步切片直接读取
+  - *.jsonl  结构化语料(每行一个 Block)，是数据准备的真输出，供切片阶段直接读取
   - *.md     渲染后的文本，仅供人眼核对提取效果
 同时生成 manifest.jsonl，记录每份文档的来源、格式、块数、字符数。
 运行：.venv_rag311\Scripts\python.exe -m preprocessing.pipeline [--src DIR] [--out DIR]

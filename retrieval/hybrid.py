@@ -2,7 +2,7 @@
 """
 混合检索：BM25(rank_bm25) + 向量(chroma cosine) 的 RRF(Reciprocal Rank Fusion) 融合。
 
-设计（见 docs/优化规划方案.md §4）：
+设计（完整方案见 docs/检索方案.md）：
 - BM25 对「精确词 / 数字 / 专名」敏感，补向量检索的短板（游戏公告满是专名+数字+价格）；
 - 两个排序用 RRF 融合，避免分数尺度不可比；k 取 60（常用经验值）；
 - tokenize 优先 jieba 分词，否则回退「中文逐字 + 英文数字整词」（不依赖 jieba 也能跑，精度略低）。
@@ -43,6 +43,15 @@ class HybridSearch:
     def __init__(self, col, embedder, corpus):
         """corpus: list of chunk dict {id,text,doc,section_path,start_page,end_page,...}。"""
         from rank_bm25 import BM25Okapi
+        if not corpus:
+            # 空语料下 BM25Okapi([]) 会抛 ZeroDivisionError（avgdl 除零），信息量极差。
+            # 这里显式给出可执行的指引，便于"新克隆/未建索引"时快速定位。
+            raise RuntimeError(
+                "混合检索语料为空：未找到任何 chunk。请先构建数据与索引：\n"
+                "  1) preprocessing.pipeline   （PDF → data/processed）\n"
+                "  2) scripts.run_chunking     （→ data/chunks）\n"
+                "  3) scripts.run_vectorize    （→ data/chroma）"
+            )
         self._col = col
         self._embedder = embedder
         self._ids = [c["id"] for c in corpus]

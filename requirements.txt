@@ -1,20 +1,20 @@
-# ===== 本项目直接依赖（版本锁定原因见 docs/故障报告.md）=====
+# ===== 本项目直接依赖（版本锁定原因见下方行内注释）=====
 # 语言 / 运行环境：Python 3.11（推荐 venv 管理，本项目用 .venv_rag311）
 
 # --- 向量化 / 检索 ---
-chromadb==0.6.3         # Windows 下 hnsw batch_size 边界触发 0xC0000005，锁此版（见故障报告）
+chromadb==0.6.3         # 锁此版：Windows 下 hnsw 索引跨 batch_size 边界时 add() 触发 0xC0000005（见 scripts/run_vectorize.py 的 batch_size 规避）
 chroma-hnswlib==0.7.6
 numpy==1.26.4           # <2，兼容 chromadb 0.6.3
 
 # --- 文档解析（本项目只处理 PDF 游戏公告）---
-PyMuPDF==1.28.2         # PDF：文本层 + find_tables()（含 pymupdf-layout 子模块）
+PyMuPDF==1.28.2         # PDF：文本层 + find_tables()
 
 # --- 网络（DashScope OpenAI 兼容接口）---
 requests==2.34.2
 
-# --- 混合检索（item⑤，检索侧优化）---
+# --- 混合检索 ---
 rank_bm25==0.2.2
 jieba==0.42.1           # 中文分词（BM25 用）
 
-# --- 测试（item④ 工程收尾）---
+# --- 测试 ---
 pytest==9.1.1

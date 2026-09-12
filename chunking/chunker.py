@@ -2,7 +2,7 @@
 """
 切片模块：把数据准备产出的 Block 列表(每行一个块)组装成适合「向量化 + 检索」的 chunk。
 
-设计要点(详见 docs/切片方案.md)：
+设计要点（完整方案见 docs/切片方案.md）：
 - 结构优先：heading 是一级边界(维护标题栈，得到 section path)，table 作为一个整体、不可拆分；
 - 段落按目标大小聚合；超长段落按句切分(绝不在句中拦腰截断)；
 - 过短 chunk 触发向后融合；
@@ -12,7 +12,7 @@
 避免为一个切片任务引入 PyMuPDF/python-docx 等重量级依赖。
 """
 import re
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 # ---- 句边界：切分优先在这些位置(中文+英文标点、分号、换行) ----
 SENT_RE = re.compile(r"[^。！？；;!?\n]*[。！？；;!?\n]+|[^。！？；;!?\n]+$")

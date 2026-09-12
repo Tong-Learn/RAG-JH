@@ -2,7 +2,7 @@
 """
 DashScope 文本重排（rerank）。用 qwen3.7-text-rerank 对候选 chunk 重排，返回 relevance 最高的 top-k。
 
-背景（见 docs/故障报告.md）：本机 torch/onnxruntime 有崩溃前科，故重排走 DashScope API，而非本地 bge-reranker。
+背景：本机 torch / onnxruntime 存在崩溃问题，故重排走 DashScope API，而非本地 bge-reranker。
 """
 import requests
 
