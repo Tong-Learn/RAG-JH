@@ -2,7 +2,7 @@
 """pytest：清洗（规范化 / 去噪 / page 透传）。"""
 import pytest
 
-from preprocessing.cleaner import clean_blocks, clean_block, _normalize_ws, _is_noise
+from preprocessing.cleaner import clean_block, _normalize_ws, _is_noise
 from preprocessing.extractors import Block
 
 
