@@ -1,123 +1,100 @@
 # -*- coding: utf-8 -*-
 """
-检索质量评估（流程四）：读取 data/eval/qa_basic.jsonl + qa_complex.jsonl，做 top-k 检索，
-按「标准答案所在文档」计算 doc 级指标；并报告 top-1 相似度分布（用于阈值拒答校准）。
+检索质量评估（新评测集）：读 test/qa_dataset/（simple_qa_30 / complex_qa_20），做 top-k 检索并按
+「来源文档集合」计算指标；不可答题单独统计（不计入检索指标）。
 
-指标（对每个 set 分别输出）：
-  - recall@k / MRR / P@1 / precision@k / nDCG@k
-拒答相关：对 answerable 题统计 top-1 相似度（正类）；对 unanswerable/irrelevant 题统计（负类）。
+指标（已按决策缩减）：
+  - simple 集（单来源，k=3）：recall@k / MRR / P@1
+  - complex 集（多来源，k=5）：recall@k（来源覆盖率宏平均）/ precision@k
+  - 不可答题（3 题）：拒答率（需 --min-score；否则只报数量）
+precision@k/nDCG 等已移除；any-hit/all-hit 仅 --detail 时作为参照输出。
+
 两条检索路线：--mode vector_only（默认）| hybrid_rerank（BM25+向量 RRF 候选 -> 重排）。
 
-运行：.venv_rag311\\Scripts\\python.exe -m scripts.eval_retrieval [-k N] [--mode vector_only|hybrid_rerank] [--sets all|basic|complex] [--min-score 0.70]
+运行：.venv_rag311\\Scripts\\python.exe -m scripts.eval_retrieval [--mode vector_only|hybrid_rerank] [--sets all|simple|complex] [--min-score 0.70] [--detail]
 """
 import argparse
-import math
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from embedding.dashscope_embedder import DashScopeEmbedder
-from scripts._common import get_collection, load_queries, PROJECT_ROOT
+from scripts._common import get_collection, load_qa_dataset, PROJECT_ROOT, QA_K
+from scripts.eval_metrics import aggregate, score_question, any_hit_rate, all_hit_rate
 from retrieval.search import make_search
 
-
-def aggregate(recs, k):
-    if not recs:
-        return None
-    n = len(recs)
-    recall = sum(1 for _, _, _, r in recs if r > 0) / n
-    mrr = sum(1.0 / r for _, _, _, r in recs if r > 0) / n
-    p1 = sum(1 for _, _, _, r in recs if r == 1) / n
-    prec = 0.0
-    for _, doc_ids, expected, _ in recs:
-        prec += sum(1 for d in doc_ids if d == expected) / k
-    prec /= n
-    ndcg = sum((1.0 / math.log2(r + 1)) if r > 0 else 0.0 for _, _, _, r in recs) / n
-    return {"recall": recall, "mrr": mrr, "p1": p1, "prec": prec, "ndcg": ndcg}
+# 各集要报告的指标
+METRIC_KEYS = {"simple": ["recall", "mrr", "p1"], "complex": ["recall", "precision"]}
+METRIC_LABEL = {"recall": "recall@k", "mrr": "MRR", "p1": "P@1", "precision": "precision@k"}
 
 
-def pct(sorted_vals, p):
-    if not sorted_vals:
-        return 0.0
-    idx = min(len(sorted_vals) - 1, int(round(p / 100.0 * (len(sorted_vals) - 1))))
-    return sorted_vals[idx]
+def run_set(setname, queries, search, min_score, detail):
+    k = QA_K[setname]
+    scores, rejected_neg, answered_neg = [], 0, 0
+    detail_rows = []
+    for q in queries:
+        res = search(q["question"], k)
+        docs = [h["meta"].get("doc") for h in res]
+        top1 = res[0]["score"] if res else None
+        if q["answerable"]:
+            s = score_question(docs, q["sources"], k)
+            scores.append(s)
+            detail_rows.append((q["id"], q["question"], docs, q["sources"], top1, s))
+        else:
+            # 不可答：理想情况是拒答（top1 < 阈值）
+            rej = (top1 is None) or (min_score is not None and top1 < min_score)
+            if rej:
+                rejected_neg += 1
+            else:
+                answered_neg += 1
+            detail_rows.append((q["id"], q["question"], docs, [], top1, None))
+
+    keys = METRIC_KEYS[setname]
+    agg = aggregate(scores, keys)
+    n_neg = rejected_neg + answered_neg
+    print(f"\n【{setname}】 可答 {agg['n']} 题，k={k}" + (f"，另有不可答 {n_neg} 题" if n_neg else ""))
+    for key in keys:
+        v = agg.get(key)
+        print(f"  {METRIC_LABEL[key]:<12}= {'None' if v is None else f'{v:.3f}'}")
+    if detail:
+        print(f"  [参照] any-hit={any_hit_rate(scores)}  all-hit={all_hit_rate(scores)}")
+    if n_neg:
+        if min_score is None:
+            print(f"  [不可答] {n_neg} 题（未给 --min-score，不判拒答）")
+        else:
+            print(f"  [不可答] 正确拒答 {rejected_neg}/{n_neg} = {rejected_neg/n_neg:.0%}  "
+                  f"漏答(未拒) {answered_neg} 题  (阈值 {min_score})")
+    if detail:
+        print("  --- 逐题 ---")
+        for qid, ques, docs, src, top1, s in detail_rows:
+            mark = "-" if s is None else ("√" if s["recall"] > 0 else "×")
+            t1 = f"{top1:.3f}" if top1 is not None else "None"
+            print(f"  [{qid} {mark}] top1={t1}  {ques[:34]}")
+    return agg, scores
 
 
 def main():
-    ap = argparse.ArgumentParser(description="检索质量评估（双集 + 阈值校准）")
-    ap.add_argument("-k", type=int, default=3, help="top-k（默认 3）")
+    ap = argparse.ArgumentParser(description="检索质量评估（新评测集）")
     ap.add_argument("--mode", default="vector_only", choices=["vector_only", "hybrid_rerank"])
-    ap.add_argument("--sets", default="all", choices=["all", "basic", "complex"])
-    ap.add_argument("--min-score", type=float, default=None, help="可选：给定阈值下输出拒答情况")
+    ap.add_argument("--sets", default="all", choices=["all", "simple", "complex"])
+    ap.add_argument("--min-score", type=float, default=None, help="给定时输出不可答题的拒答率")
+    ap.add_argument("--detail", action="store_true", help="输出逐题明细与 any/all-hit 参照")
     args = ap.parse_args()
-    k = args.k
 
-    queries = load_queries(args.sets)
+    queries = load_qa_dataset(args.sets)
+    if not queries:
+        print("未找到评测集（test/qa_dataset/ 或 data/eval/）。")
+        return
     embedder = DashScopeEmbedder()
     col = get_collection()
     search = make_search(args.mode, embedder, col, PROJECT_ROOT / "data" / "chunks")
 
-    recs = []
-    for q in queries:
-        res = search(q["query"], k)
-        doc_ids = [h["meta"].get("doc") for h in res]
-        top1 = res[0]["score"] if res else None
-        expected = q.get("expected_doc", "")
-        rank = (doc_ids.index(expected) + 1) if (expected and expected in doc_ids) else 0
-        recs.append({"set": q.get("set", "basic"), "category": q.get("category", "answerable"),
-                     "query": q["query"], "top1": top1, "doc_ids": doc_ids,
-                     "expected": expected, "rank": rank, "hard": q.get("hard", False)})
-
-    print(f"模式={args.mode}  评测集≈{len(recs)} 题，top-{k}")
-    for setname in ("basic", "complex"):
-        sub = [r for r in recs if r["set"] == setname]
-        agg = aggregate([(r["top1"], r["doc_ids"], r["expected"], r["rank"]) for r in sub], k)
-        if not agg:
-            continue
-        print(f"\n【{setname}】 {len(sub)} 题   (answerable={sum(1 for r in sub if r['category']=='answerable')})")
-        print(f"  recall@{k}    = {agg['recall']:.3f}   （命中：预期文档出现在 top-{k}）")
-        print(f"  MRR           = {agg['mrr']:.3f}")
-        print(f"  P@1           = {agg['p1']:.3f}")
-        print(f"  precision@{k} = {agg['prec']:.3f}   （top-{k} 中来自预期文档的 chunk 占比）")
-        print(f"  nDCG@{k}      = {agg['ndcg']:.3f}")
-
-    # 阈值校准：正类=answerable，负类=unanswerable/irrelevant，看 top-1 分数分布
-    pos = sorted([r["top1"] for r in recs if r["category"] == "answerable" and r["top1"] is not None])
-    neg = sorted([r["top1"] for r in recs if r["category"] in ("unanswerable", "irrelevant") and r["top1"] is not None])
-    print("\n" + "-" * 78)
-    print("阈值校准（top-1 相似度分布）")
-    if pos:
-        print(f"  正类(可答)  n={len(pos)}  min={pos[0]:.3f} p25={pct(pos,25):.3f} 中位={pct(pos,50):.3f} "
-              f"p75={pct(pos,75):.3f} max={pos[-1]:.3f}")
-    else:
-        print("  正类: 无")
-    if neg:
-        print(f"  负类(无答/无关) n={len(neg)}  min={neg[0]:.3f} p25={pct(neg,25):.3f} 中位={pct(neg,50):.3f} "
-              f"p75={pct(neg,75):.3f} max={neg[-1]:.3f}")
-    else:
-        print("  负类: 无")
-    if pos and neg:
-        print(f"  建议 min-score 落在两分布交界（可答下沿 vs 无答上沿）附近")
-        print(f"  可答最低分={pos[0]:.3f}  无答最高分={neg[-1]:.3f}")
-
-    if args.min_score is not None:
-        ms = args.min_score
-        pos_rej = sum(1 for r in recs if r["category"] == "answerable" and
-                      (r["top1"] is None or r["top1"] < ms))
-        neg_rej_ok = sum(1 for r in recs if r["category"] in ("unanswerable", "irrelevant") and
-                         (r["top1"] is None or r["top1"] < ms))
-        neg_total = sum(1 for r in recs if r["category"] in ("unanswerable", "irrelevant"))
-        if pos_rej:
-            print(f"\n[min-score={ms}] 正类(可答)被误拒: {pos_rej} 题（应尽量避免）")
-        if neg_total:
-            print(f"[min-score={ms}] 负类被正确拒答: {neg_rej_ok}/{neg_total} 题，拒答率={neg_rej_ok/neg_total:.2%}")
-
-    # 逐题明细
-    print("\n" + "-" * 78)
-    for r in recs:
-        mark = "√" if r["rank"] else "×"
-        print(f"[{r['set'][:1]}{mark}] {r['query'][:36]}  (top1={r['top1']:.3f})  预期:{r['expected'][:16]}")
+    print(f"模式={args.mode}  共 {len(queries)} 题")
+    for setname in ("simple", "complex"):
+        sub = [q for q in queries if q["set"] == setname]
+        if sub:
+            run_set(setname, sub, search, args.min_score, args.detail)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,319 @@
+{
+  "mode": "vector_only",
+  "pos": {
+    "n": 47,
+    "min": 0.5684537399881132,
+    "median": 0.677,
+    "max": 0.8289386677416898
+  },
+  "neg": {
+    "n": 3,
+    "min": 0.6076439461029559,
+    "median": 0.619,
+    "max": 0.6756979490786152
+  },
+  "suggested_min_score": null,
+  "note": "重叠：可答下沿=0.568 <= 无答上沿=0.676，见权衡表",
+  "per_question": [
+    {
+      "id": "S01",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7583860090399237
+    },
+    {
+      "id": "S02",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7164296937188079
+    },
+    {
+      "id": "S03",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6341198186117964
+    },
+    {
+      "id": "S04",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6291827828909846
+    },
+    {
+      "id": "S05",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6081173676723002
+    },
+    {
+      "id": "S06",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6893167348197636
+    },
+    {
+      "id": "S07",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.8289386677416898
+    },
+    {
+      "id": "S08",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.5755646919616644
+    },
+    {
+      "id": "S09",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6770228346372551
+    },
+    {
+      "id": "S10",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6230378747108564
+    },
+    {
+      "id": "S11",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7238479322839918
+    },
+    {
+      "id": "S12",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6515913461959578
+    },
+    {
+      "id": "S13",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6775833248720442
+    },
+    {
+      "id": "S14",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7357515172077084
+    },
+    {
+      "id": "S15",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6149188034189087
+    },
+    {
+      "id": "S16",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6434227039165736
+    },
+    {
+      "id": "S17",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7104306224684415
+    },
+    {
+      "id": "S18",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7544145527501337
+    },
+    {
+      "id": "S19",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6764342802795144
+    },
+    {
+      "id": "S20",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6858103238651839
+    },
+    {
+      "id": "S21",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7271884146820645
+    },
+    {
+      "id": "S22",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.6811260409181414
+    },
+    {
+      "id": "S23",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7047016203741228
+    },
+    {
+      "id": "S24",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7708613914822814
+    },
+    {
+      "id": "S25",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7076642657841903
+    },
+    {
+      "id": "S26",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7016018257818972
+    },
+    {
+      "id": "S27",
+      "set": "simple",
+      "answerable": true,
+      "top1": 0.7856243292917484
+    },
+    {
+      "id": "S28",
+      "set": "simple",
+      "answerable": false,
+      "top1": 0.6756979490786152
+    },
+    {
+      "id": "S29",
+      "set": "simple",
+      "answerable": false,
+      "top1": 0.619364843623689
+    },
+    {
+      "id": "S30",
+      "set": "simple",
+      "answerable": false,
+      "top1": 0.6076439461029559
+    },
+    {
+      "id": "C01",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6203384324559894
+    },
+    {
+      "id": "C02",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6721703473460009
+    },
+    {
+      "id": "C03",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6967365903109117
+    },
+    {
+      "id": "C04",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6297110182219232
+    },
+    {
+      "id": "C05",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.7098399690734459
+    },
+    {
+      "id": "C06",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.5759956700600372
+    },
+    {
+      "id": "C07",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6170856704340194
+    },
+    {
+      "id": "C08",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.5684537399881132
+    },
+    {
+      "id": "C09",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6785757521662703
+    },
+    {
+      "id": "C10",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6768645910193867
+    },
+    {
+      "id": "C11",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6727727112325393
+    },
+    {
+      "id": "C12",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6767319500788087
+    },
+    {
+      "id": "C13",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.737006454831165
+    },
+    {
+      "id": "C14",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6670141825008682
+    },
+    {
+      "id": "C15",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6498944795768407
+    },
+    {
+      "id": "C16",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6027861980523513
+    },
+    {
+      "id": "C17",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6309514069803858
+    },
+    {
+      "id": "C18",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6378791760176372
+    },
+    {
+      "id": "C19",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.7241312544566407
+    },
+    {
+      "id": "C20",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.6042304360925372
+    }
+  ]
+}
