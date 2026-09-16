@@ -60,14 +60,14 @@ def test_threshold_pass_calls_generation(monkeypatch):
     called = []
     def fake_chat(*a, **kw):
         called.append(True)
-        return "虚构回答 {1}"
+        return "虚构回答 [chunk_000001]"
     monkeypatch.setattr(ga, "chat", fake_chat)
-    hits = [{"id": "c1", "score": 0.90, "text": "片段",
+    hits = [{"id": "chunk_000001", "score": 0.90, "text": "片段",
              "meta": {"doc": "D", "section_path": "S", "start_page": 1}}]
     res = ga.gen_answer("问题", hits, model="m", min_score=0.70)
     assert res["rejected"] is False
     assert called
-    assert "{1}" in res["answer"]
+    assert "[chunk_000001]" in res["answer"]
 
 
 # ---------- 3. 生成带引用（build_context / build_messages / extract_citations） ----------
@@ -277,4 +277,54 @@ def test_preflight_vector_mode_does_not_require_chunks(monkeypatch):
     monkeypatch.setattr(c, "CHUNKS_DIR", ghost / "chunks")
     problems = c.preflight("vector_only")
     assert not any("切片" in p for p in problems)              # 纯向量不需要 BM25 语料
+
+
+# ---------- 8. CLI 输出路径（交互式入口全流程，全部依赖被替换，不联网） ----------
+
+def test_run_rag_main_prints_answer_appendix_and_citations(monkeypatch, capsys):
+    """main() 走完「检索 → 生成 → 打印来源附录 → 引用校验」。
+
+    回归点：main() 曾引用未定义的 appendix 变量，导致答案都生成完了却在最后一行 NameError。
+    """
+    import sys
+    import scripts.run_rag as r
+
+    hits = [{"id": "chunk_000001", "score": 0.90, "text": "装甲矩阵活动",
+             "meta": {"doc": "D", "section_path": "D / 活动", "start_page": 1, "end_page": 1}}]
+    monkeypatch.setattr(r, "preflight", lambda mode: [])
+    monkeypatch.setattr(r, "print_preflight", lambda problems: True)
+    monkeypatch.setattr(r, "DashScopeEmbedder", lambda *a, **kw: object())
+    monkeypatch.setattr(r, "get_collection", lambda: object())
+    monkeypatch.setattr(r, "make_search", lambda *a, **kw: (lambda q, k: hits))
+    monkeypatch.setattr(r, "chat", lambda messages, **kw: "答案 [chunk_000001]")
+    monkeypatch.setattr(sys, "argv", ["run_rag.py", "问题？"])
+
+    r.main()
+
+    out = capsys.readouterr().out
+    assert "生成回答" in out and "答案 [chunk_000001]" in out
+    assert "引用来源: [chunk_000001]" in out        # 来源附录（含页码）被打印
+    assert "引用校验: 有效 1 处" in out
+
+
+def test_run_rag_main_rejects_below_threshold_without_generation(monkeypatch, capsys):
+    """低于阈值：打印拒答文案，且不调用生成。"""
+    import sys
+    import scripts.run_rag as r
+
+    hits = [{"id": "chunk_000001", "score": 0.10, "text": "无关片段",
+             "meta": {"doc": "D", "section_path": "D / 其他", "start_page": 1}}]
+    monkeypatch.setattr(r, "preflight", lambda mode: [])
+    monkeypatch.setattr(r, "print_preflight", lambda problems: True)
+    monkeypatch.setattr(r, "DashScopeEmbedder", lambda *a, **kw: object())
+    monkeypatch.setattr(r, "get_collection", lambda: object())
+    monkeypatch.setattr(r, "make_search", lambda *a, **kw: (lambda q, k: hits))
+    monkeypatch.setattr(r, "chat", lambda *a, **kw: (_ for _ in ()).throw(AssertionError("不应调用生成")))
+    monkeypatch.setattr(sys, "argv", ["run_rag.py", "问题？"])
+
+    r.main()
+
+    out = capsys.readouterr().out
+    assert r.REJECT_ANSWER in out
+    assert "未调用生成" in out
 

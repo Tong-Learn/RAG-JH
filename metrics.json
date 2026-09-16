@@ -94,8 +94,8 @@
     "files": ["tests/test_chunker.py", "tests/test_cleaner.py", "tests/test_retrieval.py",
               "tests/test_extractors.py", "tests/test_pipeline_smoke.py",
               "tests/test_metrics_consistency.py"],
-    "passed": 55,
-    "covers": "切片 / 清洗 / RRF 融合 / 阈值拒答 / 生成带引用(chunk id) / 提示词单一来源 / 引用机械校验 / 重排 top_n 越界 / 多来源指标 / PDF 提取(视觉行聚类·标题判定·段落合并·假表格) / **离线端到端** smoke(提取→清洗→切片) / metrics.json↔代码常量与产物一致性 / 生成调用重试与 4xx 不重试 / 运行前提检查(空语料/缺索引)",
+    "passed": 57,
+    "covers": "切片 / 清洗 / RRF 融合 / 阈值拒答 / 生成带引用(chunk id) / 提示词单一来源 / 引用机械校验 / 重排 top_n 越界 / 多来源指标 / PDF 提取(视觉行聚类·标题判定·段落合并·假表格) / **离线端到端** smoke(提取→清洗→切片) / metrics.json↔代码常量与产物一致性 / 生成调用重试与 4xx 不重试 / 运行前提检查(空语料/缺索引) / **交互式入口 main() 全流程**(检索→生成→来源附录→引用校验；阈值拒答不调生成)",
     "not_covered": "①**在线链路**(向量化→检索→生成，需 DashScope API 与 chroma，未纳入 pytest，靠手动跑+审计)；②**评测脚本编排**(eval_retrieval / calibrate_threshold / eval_generation 的串接，仅 eval_metrics 纯函数有测)。"
   },
   "known_issues": {

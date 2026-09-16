@@ -190,7 +190,7 @@ def main():
         return
     print("\n生成回答:\n" + answer)
     print("-" * 78)
-    print(appendix)
+    print(build_context(hits)[1])   # 引用来源附录（含页码，可按 chunk id 回原文）
     # 引用机械校验：回答里的 chunk id 是否都来自本次【资料】
     valid, invalid, no_cite = extract_citations(answer, hits)
     print(f"引用校验: 有效 {len(valid)} 处"
