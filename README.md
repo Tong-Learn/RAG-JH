@@ -196,7 +196,7 @@ DASHSCOPE_EMBEDDING_MODEL=qwen3.7-text-embedding-flash
 | 元数据残留 | 含「晶核CoA / 听全文」的块 = **0** |
 | 顺序正确性 | 抽检「维护更新内容」位于正文**之前** |
 | 标题合并 | 抽检长标题**完整合并**（未被拆行）；「常规服 / 赛季服」散落字形已复原 |
-| 单元测试 | pytest **55 通过**（chunker / cleaner / 检索与生成链路 / PDF 提取 / 端到端 smoke / metrics.json 一致性 / 生成调用重试 / 运行前提检查） |
+| 单元测试 | pytest **57 通过**（chunker / cleaner / 检索与生成链路 / PDF 提取 / 端到端 smoke / metrics.json 一致性 / 生成调用重试 / 运行前提检查） |
 
 ---
 
@@ -233,6 +233,11 @@ DASHSCOPE_EMBEDDING_MODEL=qwen3.7-text-embedding-flash
 |---|---|---|---|---|
 | 纯向量 | **0.990** | **0.920** | 0.640 | 0.710 |
 | **混合+重排** | 0.980 | 0.930 | **0.780** | **0.970** |
+
+> ⚠️ **口径提示（重要）**：上表数字产自**旧版提示词**（规则分散在 system + user、引用用位置编号 `{1}{2}`）。
+> 此后提示词已重构为**单一 `SYSTEM_PROMPT` + `chunk id` 引用**，**当前代码与这批数字不是同一版本**。
+> 若要严格对齐需重跑生成 + 判分（两路线共 100 次生成 + 100 次判分）。
+> 详见 `metrics.json` → `known_issues.generation_metrics_predate_prompt_refactor`。
 
 ### 阈值（拒答值，新库重新校准）
 
