@@ -1,39 +1,41 @@
 {
   "_comment": "单一来源：仓库权威数字。README / docs / 评测产物引用此文件，避免仓库内数字漂移。修改指标请先改这里。",
-  "_as_of": "2026-09-10 全流程重跑后（向量模型切换为 qwen3.7-text-embedding-flash；评测集迁移到 test/qa_dataset 的 50 题；数据准备与切片沿用上次产物未重跑）",
+  "_as_of": "2026-10-07 全流程重跑后（语料 50 份 / 题库 60 题 / k 两集统一 5；切片新增尾部截断；生成与判分模型改为 qwen-flash / qwen3.7-flash；提示词加强为「资料不足必须输出『资料中没有相关信息』」）",
   "corpus": {
-    "source_count": 54,
-    "block_count": 1782,
-    "heading_blocks": 667,
-    "para_blocks": 1115,
-    "chunk_count": 605,
-    "chroma_rows": 605,
-    "note": "块数为「标题修复后」的值（3 份文档的散落字形标题合并，比修复前少 6 个 heading）；chunk 数不变。"
+    "source_count": 50,
+    "block_count": 1766,
+    "heading_blocks": 638,
+    "para_blocks": 1128,
+    "chunk_count": 607,
+    "chroma_rows": 607,
+    "note": "语料 50 份（原 54 份去掉 7 份噪声文档、新增 3 份：9月9日 / 9月16日 / 9月23日）。块数为清洗后（含尾部截断：21 份共丢 34 块）的值；chunk 数与 chroma 行为切片/向量化产物行数。"
   },
   "models": {
     "embedding": "qwen3.7-text-embedding-flash",
     "embedding_dim": 1024,
     "rerank": "qwen3.7-text-rerank",
-    "chat": "qwen3.8-max"
+    "chat": "qwen-flash",
+    "judge": "qwen3.7-flash"
   },
   "eval_set": {
     "source": "test/qa_dataset/（仓库内副本 data/eval/）",
-    "total_questions": 50,
-    "simple": {"file": "simple_qa_30.json", "n": 30, "answerable": 27, "unanswerable": 3},
-    "complex": {"file": "complex_qa_20.json", "n": 20, "answerable": 20, "unanswerable": 0},
-    "k": {"simple": 3, "complex": 5},
-    "note": "complex 每题有 2~4 个来源文档（多来源）。evidence 字段为独立大模型抽取，仅作参考不参与打分。"
+    "total_questions": 60,
+    "simple": {"file": "simple_qa.json", "n": 30, "answerable": 27, "unanswerable": 3},
+    "complex": {"file": "complex_qa.json", "n": 30, "answerable": 27, "unanswerable": 3},
+    "k": {"simple": 5, "complex": 5},
+    "note": "两集各 30 题（27 可答 + 3 不可答），合计 60 题、6 道不可答；k 两集统一 5。complex 每题有 1~4 个来源文档（多来源）。检索指标只在 54 道可答题上算（不可答题 G 为空、跳过不补 0）；生成侧四指标在全部 60 题上平均——两侧口径不对称。evidence 字段仅作参考、不参与打分。"
   },
   "retrieval_metrics": {
-    "simple_k3": {
-      "vector_only": {"recall@k": 0.889, "mrr": 0.772, "p@1": 0.704},
-      "hybrid_rerank": {"recall@k": 1.000, "mrr": 0.975, "p@1": 0.963}
+    "k": 5,
+    "simple_k5": {
+      "vector_only": {"recall@k": 0.926, "mrr": 0.779, "p@1": 0.704, "any_hit": 0.926, "all_hit": 0.926},
+      "hybrid_rerank": {"recall@k": 1.000, "mrr": 0.975, "p@1": 0.963, "any_hit": 1.000, "all_hit": 1.000}
     },
     "complex_k5": {
-      "vector_only": {"recall@k": 0.512, "precision@k": 0.430, "any_hit": 0.750, "all_hit": 0.300},
-      "hybrid_rerank": {"recall@k": 0.808, "precision@k": 0.720, "any_hit": 0.950, "all_hit": 0.600}
+      "vector_only": {"recall@k": 0.627, "precision@k": 0.452, "any_hit": 0.815, "all_hit": 0.407},
+      "hybrid_rerank": {"recall@k": 0.809, "precision@k": 0.667, "any_hit": 0.963, "all_hit": 0.593}
     },
-    "note": "complex 多来源，recall=来源覆盖率宏平均；precision=top-k 中属于来源集的占比；不算 P@1/MRR。检索存在**运行间小幅波动**（同集同 k 重复跑，top-5 内偶有顺序/边界差异，precision 实测波动约 ±0.01；ablation 中 D 路线 complex recall 0.529 与本表 0.512 的差异即来自不同一次检索），非确定性来源主要为 embedding 服务与余弦并列排序。"
+    "note": "**文档级口径**：判定「召回片段所属 doc 是否在该题 sources 里」。recall@k=来源覆盖率宏平均（同一文档多个片段只算一次）；precision@k=命中片段数/k（**按片段计数**）；P@1 与 MRR 亦按文档判定。分母是 **54 道可答题**（不可答题 G 为空，跳过、不补 0）。数字由 scripts/eval_retrieval.py **离线读** data/eval/retrieval_{route}.jsonl 计算，可随时复算；检索存在运行间小幅波动（embedding 服务 + 余弦并列排序），复算请以同一份快照为准。any_hit/all_hit 为参照项（宽松下界/严格上界），不参与主表判读。"
   },
   "ablation": {
     "simple_k3": {
@@ -48,61 +50,85 @@
       "C_vector_rerank": {"recall@k": 0.721, "precision@k": 0.640},
       "D_vector_only": {"recall@k": 0.529, "precision@k": 0.450}
     },
-    "conclusion": "重排是主要杠杆（C-D：simple recall +0.074 / MRR +0.166；complex recall +0.192 / precision +0.190）；混合候选(BM25)亦有稳定正增量（A-C：simple +0.037；complex recall +0.087 / precision +0.080）——与旧消融『BM25 几乎中性』结论相反（新评测集 + flash 模型下）。"
+    "conclusion": "重排是主要杠杆（C-D：simple recall +0.074 / MRR +0.166；complex recall +0.192 / precision +0.190）；混合候选(BM25)亦有稳定正增量（A-C：simple +0.037；complex recall +0.087 / precision +0.080）——与旧消融『BM25 几乎中性』结论相反（新评测集 + flash 模型下）。",
+    "note": "【口径说明】以上为 **54 份语料 / 50 题 / simple k=3** 那一轮的消融结果，**本次全流程重跑未复验**（scripts/ablate_search.py 保留可用，但会把 API 调用量翻数倍，故未纳入本轮）。口径同为文档级，但语料与题库不同，**数字不可与本次 retrieval_metrics 直接比较**，仅作历史参考与「哪一层是杠杆」的方向性证据。"
   },
   "threshold": {
     "vector_only": {
       "chosen": 0.55,
-      "answerable": {"n": 47, "min": 0.568, "median": 0.677, "max": 0.829},
-      "unanswerable": {"n": 3, "min": 0.608, "median": 0.619, "max": 0.676},
+      "answerable": {"n": 54, "min": 0.576, "median": 0.6824, "max": 0.8259},
+      "unanswerable": {"n": 6, "min": 0.4975, "median": 0.5923, "max": 0.6426},
       "separable": false,
-      "tradeoff": {"0.55": {"false_reject": 0, "leak": 3}, "0.60": {"false_reject": 3, "leak": 3}, "0.65": {"false_reject": 17, "leak": 1}, "0.70": {"false_reject": 31, "leak": 0}},
-      "note": "两分布重叠无法干净分割，取 0.55：误杀 0、漏拦 3（不可答题交模型自保）。旧值 0.70 在新库上会误杀 31/47。"
+      "candidates": [
+        {"interval": [null, 0.4975], "false_reject": 0, "leak": 6},
+        {"interval": [0.4975, 0.513], "false_reject": 0, "leak": 5},
+        {"interval": [0.513, 0.576], "false_reject": 0, "leak": 4},
+        {"interval": [0.5831, 0.6016], "false_reject": 3, "leak": 3},
+        {"interval": [0.6016, 0.6026], "false_reject": 3, "leak": 2},
+        {"interval": [0.6204, 0.6224], "false_reject": 8, "leak": 1},
+        {"interval": [0.6426, 0.6525], "false_reject": 17, "leak": 0}
+      ],
+      "note": "两分布重叠（可答下沿 0.5760 <= 不可答上沿 0.6426），无法干净分割。取 0.55（落在 (0.5130, 0.5760]）-> 误杀 0 / 漏拦 4：6 道不可答题里 4 道不会被阈值拦下，交给生成模型自保（SYSTEM_PROMPT 已强制「资料不足必须输出『资料中没有相关信息』」）。"
     },
     "hybrid_rerank": {
       "chosen": 0.58,
-      "answerable": {"n": 47, "min": 0.621, "median": 0.988, "max": 1.000},
-      "unanswerable": {"n": 3, "min": 0.335, "median": 0.392, "max": 0.535},
+      "answerable": {"n": 54, "min": 0.6212, "median": 0.9865, "max": 1.0},
+      "unanswerable": {"n": 6, "min": 0.1814, "median": 0.2963, "max": 0.5168},
       "separable": true,
-      "tradeoff": {"0.55": {"false_reject": 0, "leak": 0}, "0.58": {"false_reject": 0, "leak": 0}, "0.60": {"false_reject": 0, "leak": 0}},
-      "note": "可答下沿 0.621 > 不可答上沿 0.535，[0.535, 0.621] 内任意值为 0 误杀 0 漏拦；取中点 0.58。"
+      "feasible_window": [0.5168, 0.6212],
+      "candidates": [
+        {"interval": [null, 0.1814], "false_reject": 0, "leak": 6},
+        {"interval": [0.1814, 0.2346], "false_reject": 0, "leak": 5},
+        {"interval": [0.2346, 0.2903], "false_reject": 0, "leak": 4},
+        {"interval": [0.2903, 0.3022], "false_reject": 0, "leak": 3},
+        {"interval": [0.3022, 0.3745], "false_reject": 0, "leak": 2},
+        {"interval": [0.3745, 0.5168], "false_reject": 0, "leak": 1},
+        {"interval": [0.5168, 0.6212], "false_reject": 0, "leak": 0}
+      ],
+      "note": "可分离：可答下沿 0.6212 > 不可答上沿 0.5168，(0.5168, 0.6212] 内任意值均 0 误杀 0 漏拦；取 0.58（沿用上一轮值，落在该区间内）。"
     }
   },
   "generation_metrics": {
-    "scale": "0 / 0.5 / 1，LLM-as-judge（qwen3.8-max），50 题全部有效（3 条网络超时失败题已补跑）",
-    "vector_only": {"faithfulness": 0.990, "citation": 0.920, "answer_accuracy": 0.640, "rejection": 0.710,
-                    "simple": {"faithfulness": 1.000, "citation": 0.900, "answer_accuracy": 0.867, "rejection": 0.867},
-                    "complex": {"faithfulness": 0.975, "citation": 0.950, "answer_accuracy": 0.300, "rejection": 0.475}},
-    "hybrid_rerank": {"faithfulness": 0.980, "citation": 0.930, "answer_accuracy": 0.780, "rejection": 0.970,
-                      "simple": {"faithfulness": 1.000, "citation": 0.933, "answer_accuracy": 0.933, "rejection": 0.967},
-                      "complex": {"faithfulness": 0.950, "citation": 0.925, "answer_accuracy": 0.550, "rejection": 0.975}},
+    "scale": "0 / 0.5 / 1，LLM-as-judge（qwen3.7-flash），两路线各 60 题全部有效（0 生成失败）",
+    "vector_only": {"faithfulness": 0.875, "citation": 0.658, "answer_accuracy": 0.692, "rejection": 0.817,
+                    "simple": {"faithfulness": 1.000, "citation": 0.833, "answer_accuracy": 0.933, "rejection": 0.933},
+                    "complex": {"faithfulness": 0.750, "citation": 0.483, "answer_accuracy": 0.450, "rejection": 0.700}},
+    "hybrid_rerank": {"faithfulness": 0.917, "citation": 0.800, "answer_accuracy": 0.817, "rejection": 0.933,
+                      "simple": {"faithfulness": 1.000, "citation": 0.900, "answer_accuracy": 0.967, "rejection": 0.967},
+                      "complex": {"faithfulness": 0.833, "citation": 0.700, "answer_accuracy": 0.667, "rejection": 0.900}},
     "coverage_split_complex_hybrid": {
-      "full_coverage": {"n": 12, "answer_accuracy": 0.667},
-      "partial_coverage": {"n": 7, "answer_accuracy": 0.429},
-      "no_coverage": {"n": 1, "answer_accuracy": 0.000},
-      "note": "把 complex 20 题按「检索是否覆盖全部来源文档」分组看生成答案正确率（混合+重排路线）：覆盖越全正确率越高，说明生成侧瓶颈在检索证据完整性，而非生成忠实度。"
-    }
+      "full_coverage": {"n": 16, "answer_accuracy": 0.781},
+      "partial_coverage": {"n": 10, "answer_accuracy": 0.350},
+      "no_coverage": {"n": 1, "answer_accuracy": 1.000},
+      "note": "把 complex 27 道可答题按「检索是否覆盖全部来源文档」分组看答案正确率（混合+重排）：覆盖越全正确率越高（全覆盖 0.781 vs 部分覆盖 0.350），说明生成侧瓶颈在**检索证据完整性**而非忠实度。no_coverage 仅 1 题（C14），它靠其它公告的片段答对，样本量为 1、不构成规律。"
+    },
+    "note": "口径：四指标在**全部 60 题**上平均（不可答题贡献「拒答正确性」），与检索侧只在 54 题上算**不对称**。数字与**提示词版本 + 判分模型**绑定：本轮提示词要求「资料不足必须输出『资料中没有相关信息』」，判分为 qwen3.7-flash，故与历史（qwen3.8-max + 旧提示词 + 50 题）**不可直接比较**；如实反映的下降主要来自拒答类回答「没有引用」被计 0，而拒答正确性与答案正确率更有参考意义。"
   },
   "best_route": {
     "route": "hybrid_rerank",
     "composite_mean_of_4": 0.890,
-    "vector_only_composite": 0.688,
+    "vector_only_composite": 0.766,
     "components": "simple recall@k / complex recall@k / answer_accuracy / rejection",
-    "note": "混合+重排在检索两项、答案正确率、拒答正确性上全面领先；纯向量仅在忠实度/引用上微幅领先（噪声级）。"
+    "note": "混合+重排四项（1.000 / 0.809 / 0.817 / 0.933）均值 0.890，全面领先纯向量（0.926 / 0.627 / 0.692 / 0.817 → 0.766）；本轮纯向量连忠实度/引用也不再领先。"
   },
   "tests": {
-    "files": ["tests/test_chunker.py", "tests/test_cleaner.py", "tests/test_retrieval.py",
-              "tests/test_extractors.py", "tests/test_pipeline_smoke.py",
+    "files": ["tests/test_chunker.py", "tests/test_cleaner.py", "tests/test_records.py",
+              "tests/test_retrieval.py", "tests/test_extractors.py", "tests/test_pipeline_smoke.py",
+              "tests/test_offline_eval.py", "tests/test_bm25_artifact.py",
               "tests/test_metrics_consistency.py"],
-    "passed": 57,
-    "covers": "切片 / 清洗 / RRF 融合 / 阈值拒答 / 生成带引用(chunk id) / 提示词单一来源 / 引用机械校验 / 重排 top_n 越界 / 多来源指标 / PDF 提取(视觉行聚类·标题判定·段落合并·假表格) / **离线端到端** smoke(提取→清洗→切片) / metrics.json↔代码常量与产物一致性 / 生成调用重试与 4xx 不重试 / 运行前提检查(空语料/缺索引) / **交互式入口 main() 全流程**(检索→生成→来源附录→引用校验；阈值拒答不调生成)",
-    "not_covered": "①**在线链路**(向量化→检索→生成，需 DashScope API 与 chroma，未纳入 pytest，靠手动跑+审计)；②**评测脚本编排**(eval_retrieval / calibrate_threshold / eval_generation 的串接，仅 eval_metrics 纯函数有测)。"
+    "passed": 74,
+    "covers": "切片 / 清洗(含**尾部署名截断** 6 例：融合署名、句中提及不触发、取最后一次、无标记与末块原样) / **落盘记录字段守卫**(chroma metadata 键集合精确相等、answers.topk 不含 score) / **检索侧离线链路**(快照字段完整性、写→读往返、快照缺失给指引、阈值正负类分组与区间权衡表) / **BM25 产物**(构建→读回一致、优先加载不读 chunks、缺失回退现场构建) / RRF 融合 / 阈值拒答 / 生成带引用(chunk id) / 提示词单一来源 / 引用机械校验 / 重排 top_n 越界 / 多来源(文档级)指标 / PDF 提取(视觉行聚类·标题判定·段落合并·假表格) / **离线端到端** smoke(提取→清洗→切片) / metrics.json↔代码常量与产物一致性(含生成/判分模型名分开守卫) / 生成调用重试与 4xx 不重试 / 运行前提检查(空语料/缺索引) / **交互式入口 main() 全流程**(检索→生成→来源附录→引用校验；阈值拒答不调生成)",
+    "not_covered": "①**在线链路**(向量化→检索→生成，需 DashScope API 与 chroma，未纳入 pytest，靠手动跑+审计)；②**LLM 判分与生成调用本身**(eval_generation 的 judge 提示词与解析、gen_answers 的端到端串接，仅其下游纯函数有测)。"
   },
   "known_issues": {
-    "unanswerable_leak_vector": "纯向量路线 3 道不可答题分数(0.608~0.676)与可答下沿重叠，阈值 0.55 下 3 题全部漏拦（未拒答），依赖生成模型自答『资料中没有相关信息』；重排路线已解决（0 漏拦）。",
-    "complex_generation_accuracy": "生成侧 complex 集答案正确率偏低（纯向量 0.300 / 重排 0.550）：跨文档多跳问题需整合 2~4 篇来源，top-k 上下文不足以覆盖全部要点。",
-    "evidence_not_used": "新评测集 evidence 字段未参与打分（仅参考），打分基准是 gold answer + 检索上下文。",
-    "generation_transient_failure_history": "【已修复】首次批量生成时 3 条题（vector C09 / rerank C09、C19）遭遇瞬态网络读超时，旧代码把异常吞成『拒答+空检索+错误串回答』，被 judge 计 4 项 0 分，污染了当时的生成侧指标（四指标整体偏低约 0.02~0.04）。修正：① chat() 加指数退避重试（共 4 次尝试，4xx 不重试）；② gen_answers 失败时保留 hits 并显式标 error，不再伪装成拒答；③ eval_generation 跳过 error 记录并报 n=有效/总数。3 题已补跑，指标已重算。",
-    "generation_metrics_predate_prompt_refactor": "【口径需注意】generation_metrics 里的数字是在**旧提示词**下产出的（规则分散在 system+user、引用用位置编号 {1}{2}）。此后已将提示词重构为单一 SYSTEM_PROMPT，并把引用改为 chunk id（[chunk_xxxxxx]）+ 机械校验。**因此当前代码与表中数字并非同一版本**：若要严格对齐需重跑 gen_answers + eval_generation（两路线共 100 次生成 + 100 次 judge 调用）。"
+    "unanswerable_leak_vector": "纯向量路线 0.55 阈值下：6 道不可答题只拦下 2 道（S30=0.5003、C28=0.5143），**阈值层漏拦 4 道**；误杀 0。但实测这 4 道（S28/S29/C29/C30）**生成模型自己都给出了标准拒答句、judge 拒答正确性全记 1** —— 即模型层把阈值层的漏拦兜住了，这才是纯向量拒答正确性 0.817 的来源。混合+重排路线 0.58 下 **0 漏拦 0 误杀**（6 道全拦）。",
+    "answerable_false_reject_hybrid": "【本轮新增】提示词加强后出现**可答题被模型整段拒答**的失效模式：C25（top-1=0.9989、来源文档排第 1）模型仍回答「资料中没有相关信息」，judge 四项全 0。这是「6/6 拦住不可答题」的代价——提示词越强调「资料不足必须拒答」，越容易在证据其实够用的题上过度拒答。建议优先排查（改提示词需重跑生成+判分，约 120 次生成 + 120 次判分）。",
+    "snapshot_vs_generation_retrieval": "检索快照（retrieval_{route}.jsonl，服务指标与阈值）与生成期现场检索是**两次不同运行**：实测纯向量 31/60 题的 top-1 与快照不同（最大差约 0.003），混合+重排 60/60 一致。因此**阈值附近的题在生成期可能翻转**（如 S30 快照 0.4975 / 生成期 0.5003，两者都 < 0.55 故结论未变），且**两套产物不可混用**：指标读快照、拒答统计读 answers。",
+    "complex_generation_accuracy": "生成侧 complex 集答案正确率偏低（纯向量 0.450 / 重排 0.667）：跨文档多跳问题需整合 1~4 篇来源，top-5 上下文不足以覆盖全部要点（覆盖度分组：全覆盖 0.781 vs 部分覆盖 0.350）。",
+    "evidence_not_used": "评测集 evidence 字段未参与打分（仅参考），打分基准是 gold answer + 检索上下文。",
+    "tail_noise_residual": "尾部截断规则（块以「冒险者协会」结尾即丢弃其后全部块）对 **3 份完全没有署名的文档无效**，其宣传尾巴仍会入库：“冒险传承”系统优化（2 块）、家园偷菜？温泉浴盐？…（1 块）、还能抢装备？…（2 块）。共 5 块，占全库 607 块的 0.8%，不影响任何一道题的答案。要清掉只能另开机制（手工块清单），本轮按已定口径接受。",
+    "ablation_not_reverified": "四路消融为「54 份语料 / 50 题 / simple k=3」那一轮的结果，本次重跑**未复验**；口径同（文档级）但语料与题库不同，数字不可与本次 retrieval_metrics 直接比较。",
+    "generation_metrics_versioned": "生成侧四指标与**提示词版本 + 判分模型**绑定；提示词、引用格式或模型一变，「系统」即变，历史数字不可直接比较（本轮已把这条写入 generation_metrics.note）。",
+    "generation_transient_failure_history": "【历史，已修复】上一轮首跑时 3 条题（vector C09 / rerank C09、C19）遭遇瞬态网络读超时，旧代码把异常吞成『拒答+空检索』被 judge 计 0 分。修正：① chat() 指数退避重试（共 4 次尝试，4xx 不重试）；② gen_answers 失败时保留 hits 并显式标 error；③ eval_generation 跳过 error 记录并报 n=有效/总数。**本轮两路线各 60 题 0 生成失败**。"
   }
 }

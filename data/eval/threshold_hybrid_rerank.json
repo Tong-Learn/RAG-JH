@@ -1,19 +1,94 @@
 {
-  "mode": "hybrid_rerank",
+  "route": "hybrid_rerank",
+  "n_questions": 60,
   "pos": {
-    "n": 47,
-    "min": 0.6212230971117463,
-    "median": 0.988,
-    "max": 0.9999999999997566
+    "n": 54,
+    "min": 0.6212,
+    "p25": 0.8948,
+    "median": 0.9865,
+    "p75": 1.0,
+    "max": 1.0
   },
   "neg": {
-    "n": 3,
-    "min": 0.3349387919908229,
-    "median": 0.392,
-    "max": 0.5345870694854942
+    "n": 6,
+    "min": 0.1814,
+    "p25": 0.2346,
+    "median": 0.2963,
+    "p75": 0.3745,
+    "max": 0.5168
   },
-  "suggested_min_score": 0.578,
-  "note": "分离开：可答下沿=0.621 > 无答上沿=0.535，取中点",
+  "separable": true,
+  "feasible_window": [
+    0.5168,
+    0.6212
+  ],
+  "suggested_min_score": 0.569,
+  "candidates": [
+    {
+      "threshold": 0.1814,
+      "interval": [
+        null,
+        0.1814
+      ],
+      "false_reject": 0,
+      "leak": 6
+    },
+    {
+      "threshold": 0.2346,
+      "interval": [
+        0.1814,
+        0.2346
+      ],
+      "false_reject": 0,
+      "leak": 5
+    },
+    {
+      "threshold": 0.2903,
+      "interval": [
+        0.2346,
+        0.2903
+      ],
+      "false_reject": 0,
+      "leak": 4
+    },
+    {
+      "threshold": 0.3022,
+      "interval": [
+        0.2903,
+        0.3022
+      ],
+      "false_reject": 0,
+      "leak": 3
+    },
+    {
+      "threshold": 0.3745,
+      "interval": [
+        0.3022,
+        0.3745
+      ],
+      "false_reject": 0,
+      "leak": 2
+    },
+    {
+      "threshold": 0.5168,
+      "interval": [
+        0.3745,
+        0.5168
+      ],
+      "false_reject": 0,
+      "leak": 1
+    },
+    {
+      "threshold": 0.6212,
+      "interval": [
+        0.5168,
+        0.6212
+      ],
+      "false_reject": 0,
+      "leak": 0
+    }
+  ],
+  "note": "可分离：正类下沿 0.6212 > 负类上沿 0.5168；阈值取 (0.5168, 0.6212] 内任意值均 0 误杀 0 漏拦，建议中点 0.569",
   "per_question": [
     {
       "id": "S01",
@@ -181,19 +256,19 @@
       "id": "S28",
       "set": "simple",
       "answerable": false,
-      "top1": 0.3918549143729467
+      "top1": 0.18139775783812145
     },
     {
       "id": "S29",
       "set": "simple",
       "answerable": false,
-      "top1": 0.5345870694854942
+      "top1": 0.5167654503587348
     },
     {
       "id": "S30",
       "set": "simple",
       "answerable": false,
-      "top1": 0.3349387919908229
+      "top1": 0.23457815459158626
     },
     {
       "id": "C01",
@@ -253,7 +328,7 @@
       "id": "C10",
       "set": "complex",
       "answerable": true,
-      "top1": 0.8708217278030882
+      "top1": 0.8574887196861835
     },
     {
       "id": "C11",
@@ -314,6 +389,66 @@
       "set": "complex",
       "answerable": true,
       "top1": 0.9037449522024968
+    },
+    {
+      "id": "C21",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.8693594554552924
+    },
+    {
+      "id": "C22",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.9924620590009738
+    },
+    {
+      "id": "C23",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.9999999999999458
+    },
+    {
+      "id": "C24",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.8875210966977249
+    },
+    {
+      "id": "C25",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.9989280834207444
+    },
+    {
+      "id": "C26",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.9623204095912085
+    },
+    {
+      "id": "C27",
+      "set": "complex",
+      "answerable": true,
+      "top1": 0.9261910126644175
+    },
+    {
+      "id": "C28",
+      "set": "complex",
+      "answerable": false,
+      "top1": 0.37446792446553934
+    },
+    {
+      "id": "C29",
+      "set": "complex",
+      "answerable": false,
+      "top1": 0.3022343584173991
+    },
+    {
+      "id": "C30",
+      "set": "complex",
+      "answerable": false,
+      "top1": 0.29029232654346804
     }
   ]
 }

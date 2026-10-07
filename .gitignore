@@ -22,21 +22,24 @@ htmlcov/
 
 
 # ---- 项目产物（运行后生成，不入库）----
-# 向量化落库
+# 语料侧构建产物：向量库
 data/chroma/
+
+# BM25 语料侧产物（与 data/chroma 对称，由 scripts.run_bm25_build 构建）
+data/bm25/
 
 # 数据准备 / 切片 产物
 data/processed/
 data/chunks/
 
-# 生成的问答记录（复盘文档已内联，原始 jsonl 可再生成）
-data/eval/answers_*.jsonl
+# data/eval/ 下的**评测产物全部入库**（题集副本 / 检索快照 / 阈值 / 回答 / 判分结果）：
+# 它们是"指标从哪来"的可追溯凭据，体积也小（每题一行），故此处**不设任何忽略规则**。
 
 # 可选生成的样例文档
 data/samples/
 
 # ---- 源语料（大体积 / 版权，不纳入版本控制）----
-# 说明：test/ 下为真实游戏公告 PDF（54 份，约 125.4MB），仅本地运行用。
+# 说明：test/ 下为真实游戏公告 PDF（50 份），仅本地运行用。
 # 仓库不做存储；如需复现，请自行放置 PDF 或改用 scripts/generate_samples.py。
 test/
 
