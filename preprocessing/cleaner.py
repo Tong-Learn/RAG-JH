@@ -3,6 +3,7 @@
 清洗模块：对提取出的 Block 做规范化与去噪。
 - 规范化：全角空格->半角、连续空白->单个空格、去行尾空白
 - 去噪：页码/总页数("第X页/共Y页"、独立数字行)等版式噪音
+- 尾部截断：公告正文末尾的署名之后，一律是「往期推荐 / PV 预告 / 更多官方信息」类噪声，整段丢弃
 - 丢弃空块
 """
 import re
@@ -23,6 +24,25 @@ HTML_COMMENT = re.compile(r"<!--.*?-->", flags=re.S)
 META_LINE_RE = re.compile(r"\d{4}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日\s+\d{1,2}:\d{2}")
 META_TAIL_RE = re.compile(r"(听全文|\d+\s*人)$")
 META_LINE_MAX_LEN = 35
+
+# 尾部噪声截断标记：每份公告正文末尾的署名。署名之后的内容（往期推荐 / PV 预告 / 更多官方信息）
+# 与公告正文无关，整段丢弃。**规则：从后往前找最后一个「以该标记结尾」的块，丢弃它之后的全部块。**
+# 用 endswith 而非「完全等于」：署名有时独立成块（text == 标记），有时被拼进上一段正文长句
+# （text 以标记结尾，如「…问题。冒险者协会」），后者若不认，其后的推荐块会漏进语料。
+# 不使用任何位置比例阈值（如"后 25%"）——只认这一个语义标记。
+TAIL_MARKER = "冒险者协会"
+
+
+def _tail_cut_index(cleaned) -> int:
+    """从后往前找最后一个「署名块」的下标；其后的块都是推荐类噪声。找不到返回 -1。
+
+    只认 heading / para（table 无 text，不参与判定）。
+    """
+    for i in range(len(cleaned) - 1, -1, -1):
+        b = cleaned[i]
+        if b.kind in ("heading", "para") and b.text.strip().endswith(TAIL_MARKER):
+            return i
+    return -1
 
 
 def _normalize_ws(text: str) -> str:
@@ -66,9 +86,17 @@ def clean_block(block: Block):
 
 
 def clean_blocks(blocks):
+    """逐块清洗，再按尾部标记截断。
+
+    截断是**整篇文档级**的操作，故放在逐块清洗之后统一做：
+    否则被丢弃的块还要先经历一遍规范化，纯属浪费。
+    """
     cleaned = []
     for b in blocks:
         cb = clean_block(b)
         if cb is not None:
             cleaned.append(cb)
+    cut = _tail_cut_index(cleaned)
+    if cut >= 0:
+        cleaned = cleaned[:cut + 1]
     return cleaned

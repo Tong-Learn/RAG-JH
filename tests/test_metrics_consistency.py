@@ -38,9 +38,11 @@ def test_threshold_constants_match_metrics():
 
 def test_default_route_and_models_match_metrics():
     from scripts.run_rag import DEFAULT_MODE, DEFAULT_CHAT_MODEL
+    from scripts.eval_generation import DEFAULT_JUDGE_MODEL
     from retrieval.reranker import DEFAULT_RERANK_MODEL
     assert DEFAULT_MODE == "hybrid_rerank"
     assert DEFAULT_CHAT_MODEL == METRICS["models"]["chat"]
+    assert DEFAULT_JUDGE_MODEL == METRICS["models"]["judge"]      # 判分模型与生成模型分开配置
     assert DEFAULT_RERANK_MODEL == METRICS["models"]["rerank"]
 
 
@@ -67,7 +69,7 @@ def test_embedder_default_model_matches_metrics():
 
 # ---------- 2. 评测集 ----------
 
-@pytest.mark.parametrize("setname,fname", [("simple", "simple_qa_30.json"), ("complex", "complex_qa_20.json")])
+@pytest.mark.parametrize("setname,fname", [("simple", "simple_qa.json"), ("complex", "complex_qa.json")])
 def test_eval_set_counts_match_metrics(setname, fname):
     p = ROOT / "data" / "eval" / fname
     if not p.exists():

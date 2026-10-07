@@ -15,11 +15,11 @@ CHUNKS_DIR = PROJECT_ROOT / "data" / "chunks"
 EVAL_DIR = PROJECT_ROOT / "data" / "eval"
 COLLECTION = "rag_chunks"
 
-# 新评测集：源文件在 test/qa_dataset/（本地，git 不入库），仓库内保留一份可提交副本 data/eval/
+# 评测集：源文件在 test/qa_dataset/（本地，git 不入库），仓库内保留一份可提交副本 data/eval/
 QA_DATASET_DIR = PROJECT_ROOT / "test" / "qa_dataset"
-QA_FILES = {"simple": "simple_qa_30.json", "complex": "complex_qa_20.json"}
-# 两集分别的 top-k（complex 最多 4 个来源，k 取 5 以覆盖）
-QA_K = {"simple": 3, "complex": 5}
+QA_FILES = {"simple": "simple_qa.json", "complex": "complex_qa.json"}
+# 两集统一 top-k = 5（complex 每题最多 4 个来源文档，k=5 足以覆盖）
+QA_K = {"simple": 5, "complex": 5}
 
 
 def preflight(mode="hybrid_rerank"):
@@ -77,7 +77,7 @@ def _find_qa_file(fname):
 
 
 def load_qa_dataset(sets="all"):
-    """读新评测集（simple_qa_30 / complex_qa_20），返回统一记录列表。
+    """读评测集（simple_qa.json / complex_qa.json，各 30 题），返回统一记录列表。
 
     统一字段：{id, set, question, answer, sources(list[str]), evidence(list[str]), answerable}
       - question <- 原 question

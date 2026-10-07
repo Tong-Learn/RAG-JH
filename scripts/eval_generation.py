@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-生成侧评测：对 gen_answers.py 的产出逐题打分（LLM-as-judge，复用主模型 qwen3.8-max）。
+生成侧评测：对 gen_answers.py 的产出逐题打分（LLM-as-judge，默认判分模型 qwen3.7-flash，与生成模型分开）。
 
 四个指标（0 / 0.5 / 1，各附理由）：
   1) faithfulness 忠实度 ：生成答案是否严格基于**检索到的资料**、无编造。
@@ -12,7 +12,8 @@
 另可 `--no-judge` 只产出人工标注模板（不调 API）。
 
 运行：
-  .venv_rag311\\Scripts\\python.exe scripts\\eval_generation.py --answers data\\eval\\answers_v2_vector.jsonl --out data\\eval\\gen_scores_v2_vector.jsonl --mode vector_only
+  .venv_rag311\\Scripts\\python.exe scripts\\eval_generation.py --mode vector_only --answers data\\eval\\answers_vector_only.jsonl --out data\\eval\\gen_scores_vector_only.jsonl
+（--answers 缺省即 data/eval/answers_{mode}.jsonl，也可省略）
 """
 import argparse
 import json
@@ -24,7 +25,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts._common import PROJECT_ROOT, EVAL_DIR
-from scripts.run_rag import chat, DEFAULT_CHAT_MODEL
+from scripts.run_rag import chat
+
+# 默认判分模型（可 --model 覆盖）：与生成模型**分开配置**，避免"同模型自评"偏差；
+# 生成默认 qwen-flash（见 run_rag.DEFAULT_CHAT_MODEL）。
+DEFAULT_JUDGE_MODEL = "qwen3.7-flash"
 
 SCORE_KEYS = ["faithfulness", "citation", "answer_accuracy", "rejection"]
 SCORE_LABEL = {"faithfulness": "忠实度", "citation": "引用准确率",
@@ -108,10 +113,13 @@ def _avg(vals):
 
 def main():
     ap = argparse.ArgumentParser(description="生成侧评测（4 指标 LLM-judge）")
-    ap.add_argument("--answers", default=None, help="缺省 data/eval/answers_{mode}.jsonl")
+    ap.add_argument("--answers", default=None,
+                    help="回答文件；缺省 data/eval/answers_{mode}.jsonl"
+                         "（即 answers_vector_only.jsonl / answers_hybrid_rerank.jsonl）")
     ap.add_argument("--out", required=True)
     ap.add_argument("--mode", default="vector_only", choices=["vector_only", "hybrid_rerank"])
-    ap.add_argument("--model", default=DEFAULT_CHAT_MODEL)
+    ap.add_argument("--model", default=DEFAULT_JUDGE_MODEL,
+                    help=f"判分模型（默认 {DEFAULT_JUDGE_MODEL}）")
     ap.add_argument("--no-judge", action="store_true", help="只产出人工标注模板，不调 API")
     ap.add_argument("--limit", type=int, default=0, help="只跑前 N 题（0=全部）")
     args = ap.parse_args()

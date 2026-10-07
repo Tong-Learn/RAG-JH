@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""pytest：切片核心逻辑测试（由 scripts/selftest_chunker.py 迁移）。
+"""pytest：切片核心逻辑测试。
 
 覆盖：超长按句切分 / overlap 收敛句边界 / 过短融合 / 标题分节 / 表格整体 / page 透传。
 运行：.venv_rag311\\Scripts\\python.exe -m pytest tests/ -q
 """
-from chunking.chunker import chunk_blocks, split_sentences, _overlap_tail
+from chunking.chunker import chunk_blocks, split_sentences
 
 
 def _blocks(*items):
@@ -41,9 +41,11 @@ def test_overlap_is_whole_sentence():
     c1, c2 = chunks[0], chunks[1]
     body1 = c1.text.split("\n", 1)[1]
     body2 = c2.text.split("\n", 1)[1]
-    expected_tail = _overlap_tail(body1, int(40 * 0.2))
-    assert expected_tail != ""
-    assert body2.startswith(expected_tail)   # 第2段带第1段尾句重合(整句，不切半句)
+    # 硬编码期望尾串（**不用被测内部函数 _overlap_tail 反算**，避免半自证）：
+    # 第 2 段的 overlap 应是第 1 段的**整句**尾句，而不是按字符数切出的半句。
+    expected_tail = "这是第2个很长的句子验证重叠。"
+    assert body1.endswith(expected_tail)
+    assert body2.startswith(expected_tail)
 
 
 def test_small_tail_fused():
@@ -54,8 +56,10 @@ def test_small_tail_fused():
         ("para", "尾部小尾巴。", 0),
     )
     chunks = chunk_blocks(blocks, doc="t", chunk_size=50, min_chunk=10, overlap_ratio=0.2)
-    last = chunks[-1]
-    assert "尾部小尾巴" in last.text   # 过短尾部已并入末块
+    # 过短尾部必须**并入前一块**（共 2 块）；若未融合会各自成块而变成 3 块。
+    assert len(chunks) == 2
+    tbl = [c for c in chunks if c.rows][0]
+    assert "尾部小尾巴" in tbl.text          # 并入的是表格块（不是自成一块）
 
 
 def test_title_section_and_table_integrity():
@@ -74,13 +78,12 @@ def test_title_section_and_table_integrity():
 
 
 def test_page_propagation():
-    # 含 page 的块：chunk 的 start_page/end_page 应取覆盖块的 min/max
+    # 跨页 chunk：start_page / end_page 取覆盖块的 min / max（这里是第 1、2 页两块）
     blocks = [
         {"kind": "heading", "text": "A", "level": 1, "page": 1},
         {"kind": "para", "text": "第一页正文。", "page": 1},
         {"kind": "para", "text": "第二页正文。", "page": 2},
     ]
     chunks = chunk_blocks(blocks, doc="t", chunk_size=100, min_chunk=10, overlap_ratio=0.2)
-    assert chunks
-    assert 0 <= chunks[0].start_page <= chunks[0].end_page
-    assert chunks[0].start_page in (1, 2) or chunks[0].start_page == 0
+    assert len(chunks) == 1
+    assert (chunks[0].start_page, chunks[0].end_page) == (1, 2)

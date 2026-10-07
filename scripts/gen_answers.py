@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-生成 RAG 回答并落盘（供生成侧评测使用）。对新评测集 test/qa_dataset/（simple 30 + complex 20）逐题：
-  检索 top-k -> 按 min_score 阈值拒答 -> 通过则用 qwen3.8-max 生成带引用回答。
-两条检索路线：--mode vector_only | hybrid_rerank。k 按集取（simple 3 / complex 5）。
+生成 RAG 回答并落盘（供生成侧评测使用）。对评测集 test/qa_dataset/（simple 30 + complex 30，共 60 题）逐题：
+  检索 top-k -> 按 min_score 阈值拒答 -> 通过则用 qwen-flash 生成带引用回答。
+两条检索路线：--mode vector_only | hybrid_rerank。k 两集统一 5（见 _common.QA_K）。
 
-输出 JSONL：{id,set,question,gold_answer,answerable,sources,mode,top1,topk:[{id,doc,section,page,score}],rejected,
+输出 JSONL：{id,set,question,gold_answer,answerable,sources,mode,top1,topk:[{id,doc,section,page}],rejected,
               answer,citations,error}（citations 为 chunk id 引用的机械校验结果；error 非空表示该题生成失败、评测时跳过）
 
-运行：.venv_rag311\\Scripts\\python.exe scripts\\gen_answers.py --mode hybrid_rerank --sets all --out data\\eval\\answers_v2_rerank.jsonl
+运行：.venv_rag311\\Scripts\\python.exe scripts\\gen_answers.py --mode hybrid_rerank --sets all --out data\\eval\\answers_hybrid_rerank.jsonl
 （阈值缺省按路线取校准值：vector_only=0.55 / hybrid_rerank=0.58）
 """
 import argparse
@@ -35,6 +35,22 @@ def gen_answer(query, hits, model, min_score):
     valid, invalid, no_cite = extract_citations(answer, hits)
     return {"top1": top1, "rejected": False, "answer": answer, "hits": hits,
             "citations": {"valid": len(valid), "invalid": len(invalid), "none": no_cite}}
+
+
+def build_topk(hits):
+    """检索命中 -> 落盘用的 topk 列表。
+
+    只留 judge 取正文（`id`）与人工回溯（doc/section/page）要用的字段；
+    **不写 score**：分数保留在检索快照 retrieval_{route}.jsonl 里（指标与阈值读那一份）。
+    """
+    out = []
+    for h in hits:
+        meta = h["meta"]
+        pg = [meta.get("start_page"), meta.get("end_page")]
+        out.append({"id": h["id"], "doc": meta.get("doc"),
+                    "section": meta.get("section_path"),
+                    "page": pg if pg[0] else None})
+    return out
 
 
 def main():
@@ -70,14 +86,7 @@ def main():
             error = f"{type(exc).__name__}: {exc}"
             r = {"top1": (hits[0]["score"] if hits else None),
                  "rejected": False, "answer": "", "hits": hits, "citations": None}
-        topk = []
-        for h in r.get("hits", []):
-            meta = h["meta"]
-            pg = [meta.get("start_page"), meta.get("end_page")]
-            topk.append({"id": h["id"], "doc": meta.get("doc"),
-                         "section": meta.get("section_path"),
-                         "page": pg if pg[0] else None,
-                         "score": round(h["score"], 3)})
+        topk = build_topk(r.get("hits", []))
         results.append({
             "id": q["id"], "set": q["set"], "question": q["question"],
             "gold_answer": q["answer"], "answerable": q["answerable"],

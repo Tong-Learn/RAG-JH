@@ -30,8 +30,6 @@ class Chunk:
     section_path: list            # 标题栈，如 ["公务用车管理规定","一、适用范围"]
     text: str                     # 真正拿去向量化+检索的字符串(含标题前缀、含 overlap 前缀)
     rows: list = field(default_factory=list)   # table 保留原始行列；para 为空
-    start_block: int = 0          # 覆盖的源块起始下标
-    end_block: int = 0            # 覆盖的源块结束下标
     start_page: int = 0           # 覆盖的源块起始页码(1-based；无页码为 0)
     end_page: int = 0             # 覆盖的源块结束页码
 
@@ -141,8 +139,8 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
                  overlap_ratio=0.15, attach_heading=True, id_start=0):
     """Block 列表 -> Chunk 列表。blocks 是普通 dict(kind/text/level/rows)。
 
-    id 采用全局递增短键 `chunk_{序号:06d}`(id_start + 本文档内自增)，把完整溯源
-    (doc/section_path/start_block/end_block) 留在 metadata，id 只保证唯一 + 短。
+    id 采用全局递增短键 `chunk_{序号:06d}`(id_start + 本文档内自增)，把溯源信息
+    (doc/section_path/start_page/end_page) 留在 metadata，id 只保证唯一 + 短。
     【注意】id_start 为外部传入的全局计数：跨文档多次调用本函数时，须传入递增的 id_start，
     否则会产出重复 chunk id（run_chunking 已按全局 gidx 传入）。
     """
@@ -173,14 +171,13 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
     def make_chunk(sec, text, block_idxs, rows=None):
         nonlocal chunk_counter
         chunk_counter += 1
-        lo, hi = min(block_idxs), max(block_idxs)
         pages = [blocks[i].get("page", 0) for i in block_idxs]
         sp = min(pages) if pages else 0
         ep = max(pages) if pages else 0
         return Chunk(
             id=f"chunk_{id_start + chunk_counter:06d}", doc=doc,
             section_path=sec["title_stack"],
-            text=text, rows=rows or [], start_block=lo, end_block=hi,
+            text=text, rows=rows or [],
             start_page=sp, end_page=ep,
         )
 
@@ -194,7 +191,6 @@ def chunk_blocks(blocks, doc="", chunk_size=300, min_chunk=100,
             if len(tail.text) < min_chunk and not tail.rows:
                 prev = sec_chunks[-2]
                 prev.text = prev.text.rstrip() + "\n" + tail.text.strip()
-                prev.end_block = max(prev.end_block, tail.end_block)
                 prev.start_page = min(prev.start_page, tail.start_page)
                 prev.end_page = max(prev.end_page, tail.end_page)
                 sec_chunks.pop()

@@ -5,7 +5,7 @@
 流程：
   1) 向量化问题并检索 top-k chunk（路线：hybrid_rerank 混合候选+重排 / vector_only 纯向量）；
   2) top-1 分数低于该路线阈值 -> 拒答（不调生成）；否则拼接编号上下文；
-  3) 让生成模型(默认 qwen3.8-max)仅依据上下文作答，并标注引用来源。
+  3) 让生成模型(默认 qwen-flash)仅依据上下文作答，并标注引用来源。
 
 运行：.venv_rag311\\Scripts\\python.exe -m scripts.run_rag "问题" [--mode hybrid_rerank] [-k 5] [--min-score 0.58]
 """
@@ -24,8 +24,8 @@ from embedding.dashscope_embedder import DashScopeEmbedder, load_env, _get_env
 from scripts._common import get_collection, PROJECT_ROOT, preflight, print_preflight
 from retrieval.search import make_search
 
-# 默认生成模型（可 --model 覆盖）
-DEFAULT_CHAT_MODEL = "qwen3.8-max"
+# 默认生成模型（可 --model 覆盖）；判分（eval_generation）用另一个默认模型，见该脚本
+DEFAULT_CHAT_MODEL = "qwen-flash"
 CHAT_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 # 内置默认问题（-k 之外可缺省）
@@ -35,10 +35,11 @@ DEFAULT_QUESTION = "8月12日维护后开启了哪些新活动？"
 DEFAULT_MODE = "hybrid_rerank"
 
 # 拒答阈值（top-1 分数低于此值 => 拒答，不调生成）。**两路线分数尺度不同，各配一个**，
-# 均由 scripts/calibrate_threshold.py 在当前库(605 chunk, qwen3.7-text-embedding-flash)+新评测集(50题)上校准：
-#   vector_only  ：可答 min=0.568 / 不可答 max=0.676，两分布重叠，无法干净分割；
-#                  取 0.55 -> 误杀 0 题、漏拦 3 题（不可答题交由模型自保）。
-#   hybrid_rerank：可答 min=0.621 / 不可答 max=0.535，**分离开**；取 0.58（区间中点）-> 误杀 0、漏拦 0。
+# 均由 scripts/calibrate_threshold.py 在当前库(607 chunk, qwen3.7-text-embedding-flash)+新评测集(60题)上离线校准：
+#   vector_only  ：可答 min=0.576 / 不可答 max=0.6426，两分布重叠，无法干净分割；
+#                  取 0.55（落在 (0.5130, 0.5760]）-> 误杀 0 题、漏拦 4 题（6 道不可答里 4 道交由模型自保，
+#                  SYSTEM_PROMPT 已强制"资料不足必须输出「资料中没有相关信息」"）。
+#   hybrid_rerank：可答 min=0.6212 / 不可答 max=0.5168，**分离开**；取 0.58（落在 (0.5168, 0.6212]）-> 误杀 0、漏拦 0。
 MIN_SCORE_DEFAULT = {"vector_only": 0.55, "hybrid_rerank": 0.58}
 
 # 阈值拒答时的固定回答（此时**不调用生成模型**）：检索未找到相关内容，直接返回该文案，
@@ -88,7 +89,8 @@ def chat(messages, model=DEFAULT_CHAT_MODEL, max_tokens=1024, temperature=0.3, t
 SYSTEM_PROMPT = (
     "你是一个严谨的知识问答助手。请遵守以下规则：\n"
     "1) 只依据【资料】中的内容作答，不得引入资料之外的知识；\n"
-    "2) 资料不足以回答时，如实说明「资料中没有相关信息」，不要猜测或编造；\n"
+    "2) 若【资料】不足以回答问题——完全没有相关内容，或只提到一部分、缺少回答所需的关键信息——"
+    "必须直接回答「资料中没有相关信息」，不要猜测、不要编造、也不要用常识补全；\n"
     "3) 每个结论后用所依据资料片段的编号标注，格式如 [chunk_000023]；"
     "只允许使用【资料】中出现过的编号。"
 )

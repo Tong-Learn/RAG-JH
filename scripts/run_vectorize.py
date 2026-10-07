@@ -7,8 +7,8 @@
     id        <- chunk.id           (如 "chunk_000123")，检索后靠它回映射到原 chunk
     embedding <- embed(chunk.text)
     document  <- chunk.text         (正文/检索展示)
-    metadata  <- doc/section_path/start_block/end_block/start_page/end_page
-  metadata 里保留全部溯源坐标，命中后再靠 doc+section_path+start/end_block(+page) 回溯回原文档。
+    metadata  <- doc/section_path/start_page/end_page
+  metadata 里保留溯源坐标，命中后再靠 doc+section_path(+page) 回溯回原文档。
 
 运行：.venv_rag311\\Scripts\\python.exe -m scripts.run_vectorize
 依赖：.venv_rag311 里的 chromadb 0.6.3、numpy 1.26.4、requests；DASHSCOPE_API_KEY(项目 .env)
@@ -45,14 +45,12 @@ def chunk_to_record(c):
     """chunk dict -> chromadb 行的 (id, document, metadata)。
 
     metadata 只允许 str/int/float/bool 标量；列表(section_path)需拍平成字符串。
-    只保留真正被检索/引用/评估消费的溯源字段(doc/section_path/start_block/end_block)；
+    只保留真正被检索/引用/评估消费的溯源字段(doc/section_path/start_page/end_page)；
     kind_comp/char_len/overlap 已从 chunk 结构移除(纯展示/统计/调试，无用且增转换)。
     """
     meta = {
         "doc": str(c["doc"]),
         "section_path": " / ".join(c.get("section_path") or []),  # list -> string
-        "start_block": int(c.get("start_block", 0)),
-        "end_block": int(c.get("end_block", 0)),
         "start_page": int(c.get("start_page", 0)),
         "end_page": int(c.get("end_page", 0)),
     }
